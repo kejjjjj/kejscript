@@ -1,0 +1,7 @@
+{
+	hello = 2 + -4;
+	yo = hello;
+	{
+		brah = 3;
+	}
+}
