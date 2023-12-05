@@ -13,14 +13,17 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Source Files\compiler">
-      <UniqueIdentifier>{7ff0a6ef-8cde-4a76-9656-04315ce2a055}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\utilities">
       <UniqueIdentifier>{aee617bc-bebf-42b4-8cba-f2e5c3b00351}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\compiler\sanity_checks">
+    <Filter Include="Source Files\linting">
+      <UniqueIdentifier>{7ff0a6ef-8cde-4a76-9656-04315ce2a055}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\linting\sanity_checks">
       <UniqueIdentifier>{7022ac4b-f362-4fc5-a44e-0823976cad47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\runtime">
+      <UniqueIdentifier>{d25321df-be7d-4c3e-9f55-512f2a00f0b9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -28,34 +31,46 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="script.cpp">
-      <Filter>Source Files\compiler</Filter>
+      <Filter>Source Files\linting</Filter>
     </ClCompile>
     <ClCompile Include="tokenizer.cpp">
-      <Filter>Source Files\compiler</Filter>
+      <Filter>Source Files\linting</Filter>
     </ClCompile>
-    <ClCompile Include="exceptions.cpp">
-      <Filter>Source Files\compiler</Filter>
+    <ClCompile Include="linting_exceptions.cpp">
+      <Filter>Source Files\linting</Filter>
     </ClCompile>
     <ClCompile Include="file_io.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
     <ClCompile Include="punctuation.cpp">
-      <Filter>Source Files\compiler</Filter>
+      <Filter>Source Files\linting</Filter>
     </ClCompile>
-    <ClCompile Include="compiler_evaluate.cpp">
-      <Filter>Source Files\compiler</Filter>
+    <ClCompile Include="linting_evaluate.cpp">
+      <Filter>Source Files\linting</Filter>
     </ClCompile>
     <ClCompile Include="expression_sanity.cpp">
-      <Filter>Source Files\compiler\sanity_checks</Filter>
+      <Filter>Source Files\linting\sanity_checks</Filter>
     </ClCompile>
     <ClCompile Include="declaration_sanity.cpp">
-      <Filter>Source Files\compiler\sanity_checks</Filter>
+      <Filter>Source Files\linting\sanity_checks</Filter>
     </ClCompile>
-    <ClCompile Include="compiler_scope.cpp">
-      <Filter>Source Files\compiler</Filter>
+    <ClCompile Include="linting_scope.cpp">
+      <Filter>Source Files\linting</Filter>
     </ClCompile>
     <ClCompile Include="function_sanity.cpp">
-      <Filter>Source Files\compiler\sanity_checks</Filter>
+      <Filter>Source Files\linting\sanity_checks</Filter>
+    </ClCompile>
+    <ClCompile Include="if_statement_sanity.cpp">
+      <Filter>Source Files\linting\sanity_checks</Filter>
+    </ClCompile>
+    <ClCompile Include="postfix_sanity.cpp">
+      <Filter>Source Files\linting\sanity_checks</Filter>
+    </ClCompile>
+    <ClCompile Include="runtime_expression.cpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="runtime.cpp">
+      <Filter>Source Files\runtime</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -63,25 +78,31 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tokenizer.hpp">
-      <Filter>Source Files\compiler</Filter>
+      <Filter>Source Files\linting</Filter>
     </ClInclude>
     <ClInclude Include="script.hpp">
-      <Filter>Source Files\compiler</Filter>
+      <Filter>Source Files\linting</Filter>
     </ClInclude>
-    <ClInclude Include="exceptions.hpp">
-      <Filter>Source Files\compiler</Filter>
+    <ClInclude Include="linting_exceptions.hpp">
+      <Filter>Source Files\linting</Filter>
     </ClInclude>
     <ClInclude Include="file_io.hpp">
       <Filter>Source Files\utilities</Filter>
     </ClInclude>
     <ClInclude Include="punctuation.hpp">
-      <Filter>Source Files\compiler</Filter>
+      <Filter>Source Files\linting</Filter>
     </ClInclude>
-    <ClInclude Include="compiler_evaluate.hpp">
-      <Filter>Source Files\compiler</Filter>
+    <ClInclude Include="linting_evaluate.hpp">
+      <Filter>Source Files\linting</Filter>
     </ClInclude>
-    <ClInclude Include="compiler_scope.hpp">
-      <Filter>Source Files\compiler</Filter>
+    <ClInclude Include="linting_scope.hpp">
+      <Filter>Source Files\linting</Filter>
+    </ClInclude>
+    <ClInclude Include="runtime_expression.hpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="runtime.hpp">
+      <Filter>Source Files\runtime</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

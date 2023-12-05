@@ -2,10 +2,10 @@
 
 #include "pch.hpp"
 
-struct compile_error
+struct linting_error
 {
 	template<typename ... Args>
-	compile_error(const token_t* _token, const std::string& reason, const Args&&... args) : token(_token) {
+	linting_error(const token_t* _token, const std::string& reason, const Args&&... args) : token(_token) {
 		char buffer[512];
 		std::snprintf(buffer, sizeof(buffer), reason.c_str(), args...);
 		errReason = buffer;
@@ -13,7 +13,7 @@ struct compile_error
 	};
 
 	template<typename ... Args>
-	compile_error(const script_t* _script, const std::string& reason, const Args&&... args) : script(_script) {
+	linting_error(const script_t* _script, const std::string& reason, const Args&&... args) : script(_script) {
 		char buffer[512];
 		std::snprintf(buffer, sizeof(buffer), reason.c_str(), args...);
 		errReason = buffer;
@@ -21,12 +21,12 @@ struct compile_error
 	};
 
 	template<typename ... Args>
-	compile_error(const std::string& reason, const Args&&... args) : errReason(reason) {
+	linting_error(const std::string& reason, const Args&&... args) : errReason(reason) {
 		char buffer[512];
 		std::snprintf(buffer, sizeof(buffer), reason.c_str(), args...);
 		errReason = buffer;
 	};
-	compile_error() = delete;
+	linting_error() = delete;
 
 	[[nodiscard]] const char* const what() const noexcept {
 		return errReason.empty() ? "null exception" : errReason.c_str();

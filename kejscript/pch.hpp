@@ -2,9 +2,9 @@
 
 #define NOMINMAX
 
-#define ENABLE_COMPILER_LOGGING 1
+#define ENABLE_linting_LOGGING 1
 
-#if ENABLE_COMPILER_LOGGING
+#if ENABLE_linting_LOGGING
 #define LOG(x) std::cout << x
 #else
 #define LOG(x)
@@ -34,9 +34,9 @@
 #include "punctuation.hpp"
 #include "tokenizer.hpp"
 #include "script.hpp"
-#include "exceptions.hpp"
-#include "compiler_scope.hpp"
-#include "compiler_evaluate.hpp"
+//#include "linting_exceptions.hpp"
+//#include "linting_scope.hpp"
+//#include "linting_evaluate.hpp"
 
 #include "file_io.hpp"
 

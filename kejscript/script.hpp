@@ -2,8 +2,12 @@
 
 #include "pch.hpp"
 
-
-class compiler_scope;
+struct function_def
+{
+	VectorTokenPtr::iterator location;
+	std::vector<std::string> parameters;
+	std::string identifier;
+};
 
 struct script_t
 {
@@ -17,8 +21,8 @@ struct script_t
 	size_t line = 0;
 	size_t column = 0;
 
-	void compile();
-
+	void validate();
+	void execute();
 	VectorTokenPtr::iterator& get_code_pos() { return token_it; }
 
 private:

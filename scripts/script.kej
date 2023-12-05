@@ -1,6 +1,9 @@
-fn func(var1, var2)
+fn func(arg1, arg2)
 {
-	def v = var1 + var2;
-	def r = v[var1(var2[v])];
-	return r;
+	main(arg1, main(arg2, 3, 5));
+}
+
+fn main(arg1, arg2)
+{
+	return (1 - func(1, 3));
 }

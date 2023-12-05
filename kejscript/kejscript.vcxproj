@@ -133,25 +133,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="compiler_evaluate.cpp" />
-    <ClCompile Include="compiler_scope.cpp" />
+    <ClCompile Include="linting_evaluate.cpp" />
+    <ClCompile Include="linting_scope.cpp" />
     <ClCompile Include="declaration_sanity.cpp" />
-    <ClCompile Include="exceptions.cpp" />
+    <ClCompile Include="linting_exceptions.cpp" />
     <ClCompile Include="expression_sanity.cpp" />
     <ClCompile Include="file_io.cpp" />
     <ClCompile Include="function_sanity.cpp" />
+    <ClCompile Include="if_statement_sanity.cpp" />
     <ClCompile Include="kejscript.cpp" />
+    <ClCompile Include="postfix_sanity.cpp" />
     <ClCompile Include="punctuation.cpp" />
+    <ClCompile Include="runtime.cpp" />
+    <ClCompile Include="runtime_expression.cpp" />
     <ClCompile Include="script.cpp" />
     <ClCompile Include="tokenizer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="compiler_evaluate.hpp" />
-    <ClInclude Include="compiler_scope.hpp" />
-    <ClInclude Include="exceptions.hpp" />
+    <ClInclude Include="linting_evaluate.hpp" />
+    <ClInclude Include="linting_scope.hpp" />
+    <ClInclude Include="linting_exceptions.hpp" />
     <ClInclude Include="file_io.hpp" />
     <ClInclude Include="pch.hpp" />
     <ClInclude Include="punctuation.hpp" />
+    <ClInclude Include="runtime.hpp" />
+    <ClInclude Include="runtime_expression.hpp" />
     <ClInclude Include="script.hpp" />
     <ClInclude Include="tokenizer.hpp" />
   </ItemGroup>

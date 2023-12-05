@@ -1,4 +1,7 @@
 #include "pch.hpp"
+#include "linting_exceptions.hpp"
+#include "linting_evaluate.hpp"
+
 
 script_t::script_t(const std::string& filename)
 {
@@ -8,7 +11,7 @@ script_t::script_t(const std::string& filename)
 	std::cout << "path: " << path << '\n';
 	this->filename = filename;
 	if (!fs::open_file(f, path, fs::fileopen::FILE_IN)) {
-		throw compile_error("failed to open the input file\n%s", get_last_error().c_str());
+		return;
 	}
 	std::cout << std::format("\"{}\" successfully opened!\n", path);
 	char buf[4096];
@@ -19,7 +22,7 @@ script_t::script_t(const std::string& filename)
 	fs::close_file(f);
 
 	if (this->buffer.empty()) {
-		throw compile_error("empty script file");
+		return;
 	}
 
 	this->script_p = this->buffer.begin();
@@ -64,7 +67,7 @@ std::unique_ptr<token_t> script_t::read_token()
 	}
 	else {
 		if (!read_punctuation(token)) {
-			throw compile_error(this, "a token without a definition");
+			throw linting_error(this, "a token without a definition");
 		}
 	}
 
@@ -144,6 +147,15 @@ bool script_t::read_number(token_t& token)
 	return 1;
 
 }
+const std::unordered_map<std::string, tokentype_t> tokenMap = {
+	{"def",		tokentype_t::DEF},
+	{"fn",		tokentype_t::FN},
+	{"return",  tokentype_t::RETURN},
+	{"if",		tokentype_t::IF},
+	{"else",	tokentype_t::ELSE}
+};
+
+
 bool script_t::read_name(token_t& token)
 {
 	token.tt = tokentype_t::IDENTIFIER;
@@ -161,12 +173,10 @@ bool script_t::read_name(token_t& token)
 
 	}
 
-	if (token.string == "def")
-		token.tt = tokentype_t::DEF;
-	else if (token.string == "fn")
-		token.tt = tokentype_t::FN;
-	else if (token.string == "return")
-		token.tt = tokentype_t::RETURN;
+	const auto reserved_keyword = tokenMap.find(token.string);
+	if (reserved_keyword != tokenMap.end()) {
+		token.tt = reserved_keyword->second;
+	}
 
 	column += token.string.length();
 	return 1;
@@ -238,37 +248,13 @@ bool script_t::parse_int(token_t& token)
 	return 1;
 }
 
-void script_t::compile()
+void script_t::validate()
 {
-	auto& data = compiler_data::getInstance();
+	auto& data = linting_data::getInstance();
+	data.validate(tokens.begin(), tokens.end());
 
-	data.active_scope = new compiler_scope;
-
-	auto& codepos = token_it;
-	auto end = tokens.end();
-
-	while (codepos != end) {		
-		const auto parser_required = get_codeblock_type(codepos, end);
-
-		switch (parser_required) {
-		case codeblock_parser_type::CREATE_SCOPE:
-			data.active_scope = compiler_create_scope_without_range(data.active_scope);
-			break;
-		case codeblock_parser_type::DELETE_SCOPE:
-			data.active_scope = compiler_delete_scope(*this, data.active_scope);
-			break;
-		default:
-			evaluate_identifier_sanity(codepos, end);
-			break;
-		}
-
-		if (codepos == end)
-			throw compile_error((--end++)->get(), "this is a temporary error but it happened because an unexpected eof was encountered!");
-
-		++codepos;
-	}
-
-	if (!data.active_scope->is_global_scope())
-		throw compile_error((--tokens.end())->get(), "expected to find a '}'");
+}
+void script_t::execute()
+{
 
 }

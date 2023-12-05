@@ -2,7 +2,7 @@
 
 #include "pch.hpp"
 
-class compiler_scope
+class linting_scope
 {
 public:
 
@@ -32,14 +32,25 @@ public:
 			LOG(v << '\n');
 		LOG('\n');
 	}
+	bool is_function_scope() const noexcept {
+		return is_inside_of_a_function;
+	}
+	void emit_to_lower_scope(const tokentype_t type) noexcept {
+		if (lower_scope)
+			lower_scope->upper_scope_type = type;
+	}
+	std::optional<tokentype_t> get_previous_scope_context() const noexcept { 
+		return upper_scope_type != tokentype_t::UNKNOWN ? std::make_optional(upper_scope_type) : std::nullopt; 
+	}
 
-	compiler_scope* lower_scope = 0;
+	linting_scope* lower_scope = 0;
 	bool is_inside_of_a_function = false;
 
 private:
+	tokentype_t upper_scope_type = tokentype_t::UNKNOWN;
 	std::unordered_set<std::string> variable_table;
 	
 };
 
-compiler_scope* compiler_create_scope_without_range(compiler_scope* block);
-compiler_scope* compiler_delete_scope(script_t& script, compiler_scope* block);
+linting_scope* linting_create_scope_without_range(linting_scope* block);
+linting_scope* linting_delete_scope(token_t* token, linting_scope* block);

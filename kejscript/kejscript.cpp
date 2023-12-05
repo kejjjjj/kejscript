@@ -3,6 +3,9 @@
 
 #include "pch.hpp"
 
+#include "linting_evaluate.hpp"
+#include "linting_scope.hpp"
+
 int main()
 {
     std::cout << "Hello World!\n";
@@ -11,17 +14,17 @@ int main()
     try {
         script_t script("scripts\\script.kej");
 
-        script.compile();
+        script.validate();
 
     }
-    catch (compile_error& ex) {
+    catch (linting_error& ex) {
         std::cout << ex.what() << "\n\n";
     }
 
-    auto& data = compiler_data::getInstance();
+    auto& data = linting_data::getInstance();
     
     while (data.active_scope) {
-        compiler_scope* temp = data.active_scope->lower_scope;
+        linting_scope* temp = data.active_scope->lower_scope;
         delete data.active_scope;
         data.active_scope = temp;
     }

@@ -20,7 +20,9 @@ enum class tokentype_t : uint8_t
 	IDENTIFIER,
 	DEF,
 	FN,
-	RETURN
+	RETURN,
+	IF,
+	ELSE
 };
 
 struct token_t
@@ -60,4 +62,52 @@ struct punctuation_token_t : public token_t
 	bool is_operator(const punctuation_e punctuation) const noexcept override {
 		return punc == punctuation;
 	}
+};
+
+struct token_stack
+{
+	token_stack() = default;
+	token_stack(size_t o, size_t c) : num_open(o), num_close(c) {}
+	size_t num_open = 0;
+	size_t num_close = 0;
+};
+
+//this structure will stop parsing the expression based on stacked tokens
+struct expression_token_stack
+{
+	expression_token_stack() = default;
+	expression_token_stack(punctuation_e open_punc, punctuation_e close_punc) : opening(open_punc), closing(close_punc), stack(1, 0) {}
+	void assign_to_stack_if_possible(VectorTokenPtr::iterator& it) noexcept {
+
+		if (time_to_exit())
+			return;
+
+		auto token = it->get();
+
+		if (!token->is_punctuation())
+			return;
+
+		const auto p = dynamic_cast<const punctuation_token_t*>(token);
+
+		if (p->punc == opening) {
+			stack.num_open++;
+		}
+		else if (p->punc == closing) {
+			stack.num_close++;
+			location = it;
+		}
+	}
+
+	bool time_to_exit() const noexcept {
+		return stack.num_open && stack.num_close == stack.num_open;
+	}
+
+	bool not_in_use() const noexcept { return opening == P_UNKNOWN || closing == P_UNKNOWN; }
+
+	token_stack stack;
+	punctuation_e opening = punctuation_e::P_UNKNOWN;
+	punctuation_e closing = punctuation_e::P_UNKNOWN;
+	VectorTokenPtr::iterator location;
+	size_t num_evaluations = 0;
+
 };
