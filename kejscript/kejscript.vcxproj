@@ -139,6 +139,7 @@
     <ClCompile Include="exceptions.cpp" />
     <ClCompile Include="expression_sanity.cpp" />
     <ClCompile Include="file_io.cpp" />
+    <ClCompile Include="function_sanity.cpp" />
     <ClCompile Include="kejscript.cpp" />
     <ClCompile Include="punctuation.cpp" />
     <ClCompile Include="script.cpp" />

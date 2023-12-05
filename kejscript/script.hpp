@@ -2,7 +2,6 @@
 
 #include "pch.hpp"
 
-using VectorTokenPtr = std::vector<std::unique_ptr<token_t>>;
 
 class compiler_scope;
 

@@ -2,12 +2,6 @@
 
 bool is_unary_operator(const punctuation_e p)
 {
-	if (p == punctuation_e::P_UNKNOWN)
-		return false;
-
-	if (p == P_INCR || p == P_DECR)
-		return true;
-
 	if (p == P_ADD || p == P_SUB)
 		return true;
 
@@ -22,9 +16,6 @@ bool is_postfix_operator(const punctuation_e p)
 {
 	if (p == punctuation_e::P_UNKNOWN)
 		return false;
-
-	if (p == P_INCR || p == P_DECR)
-		return true;
 
 	if (p == P_BRACKET_OPEN)
 		return true;

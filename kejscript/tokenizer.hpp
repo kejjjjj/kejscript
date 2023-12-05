@@ -17,7 +17,10 @@ enum class tokentype_t : uint8_t
 	STRING_LITERAL,
 	CHAR_LITERAL,
 	PUNCTUATION,
-	IDENTIFIER
+	IDENTIFIER,
+	DEF,
+	FN,
+	RETURN
 };
 
 struct token_t
@@ -33,9 +36,15 @@ struct token_t
 	tokentype_t tt = tokentype_t::UNKNOWN;
 	size_t line = 0;
 	size_t column = 0;
+	bool is_identifier() const noexcept(true) { return tt == tokentype_t::IDENTIFIER; }
+	bool is_reserved_keyword() const noexcept(true) { return tt > tokentype_t::IDENTIFIER; }
+	virtual bool is_operator(const punctuation_e punctuation) const noexcept;
 
 	virtual bool is_punctuation() const noexcept(true) { return false; }
+
 };
+using VectorTokenPtr = std::vector<std::unique_ptr<token_t>>;
+
 struct punctuation_token_t : public token_t
 {
 	punctuation_token_t(const punctuation_t& p) :
@@ -47,5 +56,8 @@ struct punctuation_token_t : public token_t
 	OperatorPriority priority = FAILURE;
 
 	bool is_punctuation() const noexcept(true) override { return true; }
+	//a quicker implementation that doesn't need a dynamic cast
+	bool is_operator(const punctuation_e punctuation) const noexcept override {
+		return punc == punctuation;
+	}
 };
-

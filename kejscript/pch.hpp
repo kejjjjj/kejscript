@@ -29,8 +29,9 @@
 #include <numeric>
 #include <source_location>
 #include <unordered_set>
-#include "punctuation.hpp"
 
+
+#include "punctuation.hpp"
 #include "tokenizer.hpp"
 #include "script.hpp"
 #include "exceptions.hpp"

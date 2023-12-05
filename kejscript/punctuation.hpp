@@ -23,12 +23,9 @@ enum OperatorPriority : char
 };
 enum punctuation_e : char
 {
-	P_UNKNOWN,
+	
 	P_ADD,
 	P_SUB,
-
-	P_INCR,
-	P_DECR,
 
 	P_ASSIGN,
 
@@ -41,10 +38,10 @@ enum punctuation_e : char
 	P_CURLYBRACKET_OPEN,
 	P_CURLYBRACKET_CLOSE,
 
-	P_ARROW,
-
 	P_COMMA,
-	P_SEMICOLON
+	P_SEMICOLON,
+
+	P_UNKNOWN,
 };
 
 struct punctuation_t
@@ -66,9 +63,13 @@ const static punctuation_t punctuations[] =
 	{"(", P_PAR_OPEN, FAILURE},
 	{")", P_PAR_CLOSE, FAILURE},
 
+	{"[", P_BRACKET_OPEN, FAILURE},
+	{"]", P_BRACKET_CLOSE, FAILURE},
+
 	{"{", P_CURLYBRACKET_OPEN, FAILURE},
 	{"}", P_CURLYBRACKET_CLOSE, FAILURE},
 
+	{",", P_COMMA},
 	{";", P_SEMICOLON }
 };
 

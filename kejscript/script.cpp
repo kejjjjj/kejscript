@@ -149,6 +149,9 @@ bool script_t::read_name(token_t& token)
 	token.tt = tokentype_t::IDENTIFIER;
 	token.string.push_back(*script_p++);
 
+	if (script_p == scriptend_p)
+		return 1;
+
 	while (std::isalnum(*script_p) || *script_p == '_') {
 
 		token.string.push_back(*script_p++);
@@ -157,6 +160,13 @@ bool script_t::read_name(token_t& token)
 			break;
 
 	}
+
+	if (token.string == "def")
+		token.tt = tokentype_t::DEF;
+	else if (token.string == "fn")
+		token.tt = tokentype_t::FN;
+	else if (token.string == "return")
+		token.tt = tokentype_t::RETURN;
 
 	column += token.string.length();
 	return 1;
@@ -251,6 +261,10 @@ void script_t::compile()
 			evaluate_identifier_sanity(codepos, end);
 			break;
 		}
+
+		if (codepos == end)
+			throw compile_error((--end++)->get(), "this is a temporary error but it happened because an unexpected eof was encountered!");
+
 		++codepos;
 	}
 

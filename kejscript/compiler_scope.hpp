@@ -7,7 +7,12 @@ class compiler_scope
 public:
 
 	bool is_global_scope() const noexcept { return lower_scope == nullptr; }
-	void declare_variable(const std::string& name) { variable_table.insert(name); }
+	bool declare_variable(const std::string& name) {  
+		if (variable_exists(name))
+			return false;
+		variable_table.insert(name); 
+		return true;
+	}
 	bool variable_exists(const std::string& name) { 
 
 		const bool found = variable_table.find(name) != variable_table.end();
@@ -29,11 +34,10 @@ public:
 	}
 
 	compiler_scope* lower_scope = 0;
+	bool is_inside_of_a_function = false;
 
 private:
 	std::unordered_set<std::string> variable_table;
-	std::unordered_set<std::string> function_table;
-
 	
 };
 

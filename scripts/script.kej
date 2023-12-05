@@ -1,7 +1,6 @@
+fn func(var1, var2)
 {
-	hello = 2 + -4;
-	yo = hello;
-	{
-		brah = 3;
-	}
+	def v = var1 + var2;
+	def r = v[var1(var2[v])];
+	return r;
 }

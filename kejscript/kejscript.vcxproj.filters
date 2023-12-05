@@ -54,6 +54,9 @@
     <ClCompile Include="compiler_scope.cpp">
       <Filter>Source Files\compiler</Filter>
     </ClCompile>
+    <ClCompile Include="function_sanity.cpp">
+      <Filter>Source Files\compiler\sanity_checks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.hpp">
