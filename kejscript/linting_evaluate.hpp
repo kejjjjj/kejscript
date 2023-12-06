@@ -69,16 +69,16 @@ struct linting_expression
 	}
 };
 
-struct expression_context
+struct l_expression_context
 {
-	expression_context(const expression_token_stack& _stack) : stack(_stack) {}
+	l_expression_context(const expression_token_stack& _stack) : stack(_stack) {}
 
 	linting_expression expression;
 	std::vector<linting_expression> expressions;
 	expression_token_stack stack;
 	std::unique_ptr<undefined_variable> undefined_var;
-	expression_context(const expression_context&) = delete;
-	expression_context& operator=(const expression_context&) = delete;
+	l_expression_context(const l_expression_context&) = delete;
+	l_expression_context& operator=(const l_expression_context&) = delete;
 
 };
 
@@ -99,5 +99,5 @@ void evaluate_return_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterat
 void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
 void evaluate_else_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
 
-[[nodiscard]] VectorTokenPtr::iterator evaluate_subscript_sanity(VectorTokenPtr::iterator begin, VectorTokenPtr::iterator& end, expression_context& context);
-[[nodiscard]] VectorTokenPtr::iterator  evaluate_function_call_sanity(VectorTokenPtr::iterator begin, VectorTokenPtr::iterator& end, expression_context& context);
+[[nodiscard]] VectorTokenPtr::iterator evaluate_subscript_sanity(VectorTokenPtr::iterator begin, VectorTokenPtr::iterator& end, l_expression_context& context);
+[[nodiscard]] VectorTokenPtr::iterator  evaluate_function_call_sanity(VectorTokenPtr::iterator begin, VectorTokenPtr::iterator& end, l_expression_context& context);

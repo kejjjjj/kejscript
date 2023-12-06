@@ -2,6 +2,7 @@
 #include "linting_exceptions.hpp"
 #include "linting_evaluate.hpp"
 
+#include "runtime.hpp"
 
 script_t::script_t(const std::string& filename)
 {
@@ -256,5 +257,11 @@ void script_t::validate()
 }
 void script_t::execute()
 {
+	runtime rt{};
+
+	//runtime& run = rt.get_instance();
+
+	rt.initialize(tokens.begin(), tokens.end(), linting_data::getInstance().function_table);
+	rt.execute();
 
 }

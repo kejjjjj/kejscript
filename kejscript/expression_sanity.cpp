@@ -3,11 +3,11 @@
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
 
-bool peek_unary_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context);
-bool peek_identifier(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context);
-bool peek_postfix_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context);
+bool peek_unary_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, l_expression_context& context);
+bool peek_identifier(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, l_expression_context& context);
+bool peek_postfix_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, l_expression_context& context);
 
-void tokenize_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context)
+void tokenize_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, l_expression_context& context)
 {
 	while (peek_unary_operator(it, end, context));
 	if (peek_identifier(it, end, context) == false)
@@ -22,7 +22,7 @@ void tokenize_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& en
 	context.expression = linting_expression();
 
 }
-void tokenize_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& ctx)
+void tokenize_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, l_expression_context& ctx)
 {
 	if (it == end || it->get()->is_operator(punctuation_e::P_SEMICOLON))
 		return;
@@ -61,7 +61,7 @@ void tokenize_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& e
 	if (it == end)
 		throw linting_error(it->get(), "an empty expression is not allowed");
 
-	expression_context ctx(stack);
+	l_expression_context ctx(stack);
 
 	//ctx.stack.num_evaluations;
 
@@ -124,7 +124,7 @@ void tokenize_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& e
 	return { it, ctx.stack.num_evaluations + 1 };
 }
 
-bool peek_unary_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context)
+bool peek_unary_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, l_expression_context& context)
 {
 	if (it == end)
 		return false;
@@ -153,7 +153,7 @@ bool peek_unary_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator&
 	std::advance(it, 1);
 	return true;
 }
-bool peek_identifier(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context)
+bool peek_identifier(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, l_expression_context& context)
 {
 	if (it == end)
 		return false;
@@ -215,7 +215,7 @@ bool peek_identifier(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end
 	std::advance(it, 1);
 	return true;
 }
-bool peek_postfix_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context)
+bool peek_postfix_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, l_expression_context& context)
 {
 	if (it == end)
 		return false;

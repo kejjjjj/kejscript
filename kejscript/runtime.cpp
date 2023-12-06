@@ -1,20 +1,27 @@
 #include "pch.hpp"
 
 #include "runtime.hpp"
+#include "runtime_expression.hpp"
+#include "operators.hpp"
 
-runtime::runtime(const VectorTokenPtr& _tokens, const std::unordered_map<std::string, function_def>& table) : tokens(_tokens), function_table(table)
+void runtime::initialize(const VectorTokenPtr::iterator begin, const VectorTokenPtr::iterator end, const std::unordered_map<std::string, function_def>& table)
 {
-	
-}
+	_begin = begin;
+	_end = end;
+	function_table = table;
 
+
+}
 void runtime::execute()
 {
-	auto it = tokens.begin();
-	auto end = tokens.end();
+	decltype(_begin) it = _begin;
+	decltype(_end) end = _end;
+
+	evaluation_functions::getInstance().initialize_functions();
 
 	while (it != end) {
 
-
+		it = evaluate_expression(it, end);
 
 		++it;
 	}

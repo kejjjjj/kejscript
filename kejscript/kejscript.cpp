@@ -5,20 +5,23 @@
 
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
+#include "runtime_exception.hpp"
 
 int main()
 {
     std::cout << "Hello World!\n";
 
+    script_t script("scripts\\script.kej");
+
+    bool linting_failed = false;
 
     try {
-        script_t script("scripts\\script.kej");
-
         script.validate();
 
     }
     catch (linting_error& ex) {
         std::cout << ex.what() << "\n\n";
+        linting_failed = true;
     }
 
     auto& data = linting_data::getInstance();
@@ -29,4 +32,17 @@ int main()
         data.active_scope = temp;
     }
 
+    if (linting_failed) {
+        LOG("stopping execution\n");
+        return 0;
+    }
+
+    try {
+        script.execute();
+    }
+    catch (runtime_error& ex) {
+        std::cout << ex.what() << "\n\n";
+    }
+
+    return 1;
 }
