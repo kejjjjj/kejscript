@@ -56,7 +56,7 @@ void tokenize_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& e
 	return;
 
 }
-[[nodiscard]] expression_results evaluate_expression_sanity(VectorTokenPtr::iterator it, VectorTokenPtr::iterator end, const expression_token_stack& stack)
+[[nodiscard]] l_expression_results evaluate_expression_sanity(VectorTokenPtr::iterator it, VectorTokenPtr::iterator end, const expression_token_stack& stack)
 {
 	if (it == end)
 		throw linting_error(it->get(), "an empty expression is not allowed");
@@ -172,7 +172,7 @@ bool peek_identifier(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end
 			std::advance(it, 1);
 
 			expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
-			expression_results results = evaluate_expression_sanity(it, end, stack);
+			l_expression_results results = evaluate_expression_sanity(it, end, stack);
 
 			if (results.num_evaluations > 1) {
 				throw linting_error(results.it->get(), "expected one expression instead of %u", (unsigned __int64)results.num_evaluations);

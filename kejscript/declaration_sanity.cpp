@@ -5,6 +5,11 @@
 
 void evaluate_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end)
 {
+	auto scope = linting_data::getInstance().active_scope;
+
+	//if (scope->is_function_scope() == false)
+	//	throw linting_error(it->get(), "variables can only be declared within function scopes");
+
 	//check if the next token is valid
 	if (VECTOR_PEEK(it, 1, end) == false) { 
 		throw linting_error(it->get(), "expected an identifier");
@@ -14,9 +19,7 @@ void evaluate_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::i
 	if (it->get()->is_identifier() == false)
 		throw linting_error(it->get(), "expected an identifier");
 
-	auto scope = linting_data::getInstance().active_scope;
-
-	if (!scope->declare_variable(it->get()->string))
+	if (scope->declare_variable(it->get()->string) == false)
 		throw linting_error(it->get(), "the variable '%s' is already defined");
 
 	LOG("declaring: '" << it->get()->string << "'\n");

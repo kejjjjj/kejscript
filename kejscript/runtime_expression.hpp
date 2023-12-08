@@ -1,24 +1,7 @@
 #pragma once
 
 #include "pch.hpp"
-
-
-struct expression_t
-{
-	std::vector<token_t*> prefix;
-	token_t* identifier = 0;
-	std::vector<token_t*> postfix;
-	
-	struct operator_t{
-		bool is_operator = false;
-		punctuation_e punc = punctuation_e::P_UNKNOWN;
-		OperatorPriority priority = OperatorPriority::FAILURE;
-	}op;
-
-	bool empty() const noexcept {
-		return prefix.empty() && identifier == nullptr;
-	}
-};
+#include "operators.hpp"
 
 struct expression_context
 {
@@ -33,4 +16,15 @@ struct expression_context
 
 };
 
-[[nodiscard]] VectorTokenPtr::iterator evaluate_expression(VectorTokenPtr::iterator it, VectorTokenPtr::iterator end, const expression_token_stack & = expression_token_stack());
+struct expression_results
+{
+	expression_results() = default;
+	expression_results(auto& _it, auto& expr): it(_it), expression(std::move(expr)){}
+	VectorTokenPtr::iterator it;
+	std::unique_ptr<expression_node> expression;
+
+	expression_results& operator=(const expression_results&) = delete;
+	expression_results(const expression_results&) = delete;
+};
+
+[[nodiscard]] std::unique_ptr<expression_results> evaluate_expression(VectorTokenPtr::iterator it, VectorTokenPtr::iterator end, const expression_token_stack & = expression_token_stack());

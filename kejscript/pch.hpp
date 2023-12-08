@@ -29,7 +29,7 @@
 #include <numeric>
 #include <source_location>
 #include <unordered_set>
-
+#include <variant>
 
 #include "punctuation.hpp"
 #include "tokenizer.hpp"

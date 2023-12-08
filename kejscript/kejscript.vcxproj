@@ -148,10 +148,12 @@
     <ClCompile Include="postfix_sanity.cpp" />
     <ClCompile Include="punctuation.cpp" />
     <ClCompile Include="runtime.cpp" />
+    <ClCompile Include="runtime_declaration.cpp" />
     <ClCompile Include="runtime_exception.cpp" />
     <ClCompile Include="runtime_expression.cpp" />
     <ClCompile Include="script.cpp" />
     <ClCompile Include="tokenizer.cpp" />
+    <ClCompile Include="variable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="datatype.hpp" />
@@ -164,10 +166,12 @@
     <ClInclude Include="pch.hpp" />
     <ClInclude Include="punctuation.hpp" />
     <ClInclude Include="runtime.hpp" />
+    <ClInclude Include="runtime_declaration.hpp" />
     <ClInclude Include="runtime_exception.hpp" />
     <ClInclude Include="runtime_expression.hpp" />
     <ClInclude Include="script.hpp" />
     <ClInclude Include="tokenizer.hpp" />
+    <ClInclude Include="variable.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

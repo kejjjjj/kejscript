@@ -51,7 +51,7 @@
 	expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
 	LOG("jumping from " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
 
-	expression_results results = evaluate_expression_sanity(it, end, stack);
+	l_expression_results results = evaluate_expression_sanity(it, end, stack);
 
 	size_t num_args = results.num_evaluations;
 	it = results.it;

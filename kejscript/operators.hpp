@@ -1,8 +1,6 @@
 #pragma once
 
 #include "pch.hpp"
-
-#include "runtime_expression.hpp"
 #include "operand.hpp"
 
 
@@ -14,27 +12,33 @@ struct expression_node {
 	};
 	struct operator_s
 	{
+		operator_s() = default;
+		operator_s(punctuation_e p, OperatorPriority op) : punc(p), priority(op){}
+		void set(punctuation_e p, OperatorPriority op) noexcept(true) {
+			punc = p;
+			priority = op;
+		}
+
 		punctuation_e punc = punctuation_e::P_UNKNOWN;
 		OperatorPriority priority = OperatorPriority::FAILURE;
 	};
 	expression_node() = delete;
-	expression_node(const expression_t& expr) : _operand(std::unique_ptr<operand>(new operand(expr))) {
+	expression_node(const expression_t& expr) : _op(std::make_unique<operand>(expr)) {
 		type = Type::OPERAND;
 	}
-	expression_node(const operator_s op) {
-		_operator.punc = op.punc;
-		_operator.priority = op.priority;
+	expression_node(std::unique_ptr<operand>& expr) : _op(std::move(expr)) {
+		type = Type::OPERAND;
+	}
+	expression_node(const operator_s op) : _op(operator_s(op.punc, op.priority)) {
 		type = Type::OPERATOR;
 	}
 
-	union {
-		std::unique_ptr<operand> _operand;
-		operator_s _operator{ punctuation_e::P_UNKNOWN, OperatorPriority::FAILURE };
-	};
+
+	std::variant<std::unique_ptr<operand>, operator_s> _op;
 
 	~expression_node() {
 		if (type == Type::OPERAND) {
-			_operand.reset();
+			std::get<std::unique_ptr<operand>>(_op).reset();
 		}
 	}
 
@@ -61,8 +65,8 @@ public:
 	}
 
 private:
-	static void arithmetic_addition(expression_node&, expression_node&);
+	static std::unique_ptr<expression_node> arithmetic_addition(expression_node&, expression_node&);
 
-	std::unordered_map<punctuation_e, std::function<void(expression_node&, expression_node&)>> eval_functions;
+	std::unordered_map<punctuation_e, std::function<std::unique_ptr<expression_node>(expression_node&, expression_node&)>> eval_functions;
 
 };

@@ -82,7 +82,7 @@ struct l_expression_context
 
 };
 
-struct expression_results
+struct l_expression_results
 {
 	VectorTokenPtr::iterator it;
 	size_t num_evaluations = 0;
@@ -93,7 +93,7 @@ codeblock_parser_type get_codeblock_type(VectorTokenPtr::iterator& it, VectorTok
 void evaluate_identifier_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
 
 void evaluate_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
-[[nodiscard]] expression_results evaluate_expression_sanity(VectorTokenPtr::iterator it, VectorTokenPtr::iterator to, const expression_token_stack& = expression_token_stack());
+[[nodiscard]] l_expression_results evaluate_expression_sanity(VectorTokenPtr::iterator it, VectorTokenPtr::iterator to, const expression_token_stack& = expression_token_stack());
 void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
 void evaluate_return_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
 void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);

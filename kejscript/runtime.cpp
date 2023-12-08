@@ -21,7 +21,7 @@ void runtime::execute()
 
 	while (it != end) {
 
-		it = evaluate_expression(it, end);
+		it = evaluate_expression(it, end)->it;
 
 		++it;
 	}

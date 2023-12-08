@@ -2,6 +2,8 @@
 
 #include "pch.hpp"
 
+#include "variable.hpp"
+
 struct runtime
 {
 	runtime() = default;
@@ -9,6 +11,12 @@ struct runtime
 	void initialize(const VectorTokenPtr::iterator begin, const VectorTokenPtr::iterator end, const std::unordered_map<std::string, function_def>& table);
 
 	void execute();
+
+	void declare_variable(const std::string& i) {
+		variables.insert({ i, std::move(std::make_unique<variable>()) });
+	}
+
+	std::unordered_map<std::string, std::unique_ptr<variable>> variables;
 
 private:
 	function_def* entry_point = 0;
