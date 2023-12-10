@@ -90,6 +90,9 @@
     <ClCompile Include="runtime_declaration.cpp">
       <Filter>Source Files\runtime</Filter>
     </ClCompile>
+    <ClCompile Include="function.cpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.hpp">
@@ -138,6 +141,9 @@
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
     <ClInclude Include="runtime_declaration.hpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="function.hpp">
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
   </ItemGroup>

@@ -29,6 +29,8 @@ enum punctuation_e : char
 
 	P_ASSIGN,
 
+	P_EQUALITY,
+
 	P_PAR_OPEN,
 	P_PAR_CLOSE,
 
@@ -44,7 +46,7 @@ enum punctuation_e : char
 	P_UNKNOWN,
 };
 
-struct punctuation_t
+struct punctuation_t 
 {
 	std::string identifier;
 	punctuation_e punc = P_UNKNOWN;
@@ -54,6 +56,8 @@ struct punctuation_t
 const static punctuation_t punctuations[] =
 {
 	//needs to be sorted from longest string to shortest
+
+	{"==", P_EQUALITY, RELATIONAL },
 
 	{"+", P_ADD, ADDITIVE},
 	{"-", P_SUB, ADDITIVE},

@@ -5,7 +5,7 @@
 class linting_scope
 {
 public:
-
+	linting_scope() = default;
 	bool is_global_scope() const noexcept { return lower_scope == nullptr; }
 	bool declare_variable(const std::string& name) {  
 		if (variable_exists(name))
@@ -45,12 +45,16 @@ public:
 
 	linting_scope* lower_scope = 0;
 	bool is_inside_of_a_function = false;
+	std::unique_ptr<code_block> block;
 
 private:
 	tokentype_t upper_scope_type = tokentype_t::UNKNOWN;
 	std::unordered_set<std::string> variable_table;
 	
+	linting_scope& operator=(const linting_scope&) = delete;
+	linting_scope(const linting_scope&) = delete;
+
 };
 
 linting_scope* linting_create_scope_without_range(linting_scope* block);
-linting_scope* linting_delete_scope(token_t* token, linting_scope* block);
+linting_scope* linting_delete_scope(VectorTokenPtr::iterator& it, token_t* token, linting_scope* block);

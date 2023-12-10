@@ -3,4 +3,4 @@
 #include "pch.hpp"
 #include "variable.hpp"
 
-void declare_variable(VectorTokenPtr::iterator& it);
+void declare_variable(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end);

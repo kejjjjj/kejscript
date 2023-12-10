@@ -153,7 +153,9 @@ const std::unordered_map<std::string, tokentype_t> tokenMap = {
 	{"fn",		tokentype_t::FN},
 	{"return",  tokentype_t::RETURN},
 	{"if",		tokentype_t::IF},
-	{"else",	tokentype_t::ELSE}
+	{"else",	tokentype_t::ELSE},
+	{"true",	tokentype_t::_TRUE},
+	{"false",	tokentype_t::_FALSE}
 };
 
 
@@ -204,16 +206,18 @@ bool script_t::read_punctuation(std::unique_ptr<token_t>& token)
 	for (const auto& i : punctuations) {
 
 		//check eof
-		if ((script_p + i.identifier.length() - 1ull) != scriptend_p) {
+		if((size_t)std::distance(script_p, scriptend_p) >= i.identifier.length()){
 
-			const std::string punctuation = std::string(script_p, (script_p + i.identifier.length()));
+			auto end = script_p + i.identifier.length();
+
+			const std::string punctuation = std::string(script_p, end);
 
 			//is the punctuation valid?
 			if (!punctuation.compare(i.identifier)) {
 				const size_t _line = token->line;
 				const size_t _column = token->column;
 
-				token = std::make_unique<punctuation_token_t>(punctuation_token_t(i));
+				token = std::unique_ptr<punctuation_token_t>(new punctuation_token_t(i));
 				token->line = _line;
 				token->column = _column;
 
@@ -257,9 +261,7 @@ void script_t::validate()
 }
 void script_t::execute()
 {
-	runtime rt{};
-
-	//runtime& run = rt.get_instance();
+	runtime& rt = runtime::get_instance();
 
 	rt.initialize(tokens.begin(), tokens.end(), linting_data::getInstance().function_table);
 	rt.execute();

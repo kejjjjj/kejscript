@@ -1,5 +1,6 @@
 #include "pch.hpp"
 
+
 enum class codeblock_parser_type : char
 {
 	PREPROCESSOR,
@@ -16,14 +17,19 @@ enum class tokentype_t : uint8_t
 	FLOAT_LITERAL,
 	STRING_LITERAL,
 	CHAR_LITERAL,
+	_TRUE,
+	_FALSE,
 	PUNCTUATION,
 	IDENTIFIER,
 	DEF,
 	FN,
 	RETURN,
 	IF,
-	ELSE
+	ELSE,
 };
+
+struct code_block;
+
 
 struct token_t
 {
@@ -43,13 +49,16 @@ struct token_t
 	virtual bool is_operator(const punctuation_e punctuation) const noexcept;
 
 	virtual bool is_punctuation() const noexcept(true) { return false; }
+	std::unique_ptr<code_block> block = nullptr;
+
+	token_t& operator=(const token_t&) = delete;
+	token_t(const token_t&) = delete;
 
 };
 using VectorTokenPtr = std::vector<std::unique_ptr<token_t>>;
-
 struct punctuation_token_t : public token_t
 {
-	punctuation_token_t(const punctuation_t& p) :
+ 	punctuation_token_t(const punctuation_t& p) :
 		token_t(p.identifier, tokentype_t::PUNCTUATION), punc(p.punc), priority(p.priority) {
 	}
 	~punctuation_token_t() = default;
@@ -62,6 +71,9 @@ struct punctuation_token_t : public token_t
 	bool is_operator(const punctuation_e punctuation) const noexcept override {
 		return punc == punctuation;
 	}
+
+	punctuation_token_t& operator=(const punctuation_token_t&) = delete;
+	punctuation_token_t(const punctuation_token_t&) = delete;
 };
 
 struct token_stack
@@ -110,4 +122,57 @@ struct expression_token_stack
 	VectorTokenPtr::iterator location;
 	size_t num_evaluations = 0;
 
+};
+
+struct function_def
+{
+	VectorTokenPtr::iterator start;
+	VectorTokenPtr::iterator end;
+	std::vector<std::string> parameters;
+	std::string identifier;
+};
+enum class code_block_e : uint8_t
+{
+	IF,
+	ELSE,
+	FN_CALL
+};
+struct code_block
+{
+	explicit code_block(token_t* target) : target_token(target){}
+	virtual ~code_block() = default;
+	virtual code_block_e type() const noexcept(true) = 0;
+	token_t* target_token = nullptr;
+	VectorTokenPtr::iterator start;
+	VectorTokenPtr::iterator end;
+};
+
+struct if_block : public code_block
+{
+	if_block(token_t*t) : code_block(t){}
+	~if_block() = default;
+	VectorTokenPtr::iterator condition_start;
+	VectorTokenPtr::iterator condition_end;
+	code_block_e type() const noexcept(true) override { return code_block_e::IF; }
+};
+struct else_block : public code_block
+{
+	else_block(token_t* t) : code_block(t) {}
+	~else_block() = default;
+	code_block_e type() const noexcept(true) override { return code_block_e::ELSE; }
+};
+
+struct function_call : public code_block
+{
+	function_call(token_t* t) : code_block(t) {}
+	~function_call() = default;
+
+	struct block {
+		VectorTokenPtr::iterator start;
+		VectorTokenPtr::iterator end;
+	};
+	std::list<block> arguments;
+	function_def* target = nullptr;
+
+	code_block_e type() const noexcept(true) override { return code_block_e::FN_CALL; }
 };

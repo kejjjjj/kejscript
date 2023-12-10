@@ -20,6 +20,8 @@ struct expression_results
 {
 	expression_results() = default;
 	expression_results(auto& _it, auto& expr): it(_it), expression(std::move(expr)){}
+	expression_results(auto& _it) : it(_it), expression(nullptr) {}
+
 	VectorTokenPtr::iterator it;
 	std::unique_ptr<expression_node> expression;
 

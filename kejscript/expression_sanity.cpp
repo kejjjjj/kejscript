@@ -45,9 +45,6 @@ void tokenize_operator(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& e
 		throw linting_error(token, "expected the expression to end before '%s'", token->string.c_str());
 	}
 
-	if(op->punc == punctuation_e::P_ASSIGN)
-		throw linting_error(token, "don't use assignment operators in expressions");
-
 	linting_expression expression;
 	expression.op = true;
 	expression.identifier = token;

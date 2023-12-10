@@ -17,7 +17,7 @@ struct linting_data
 {
 	static linting_data& getInstance() { static linting_data d; return d; }
 	linting_scope* active_scope = 0;
-
+	function_def current_function;
 	void validate(VectorTokenPtr::iterator it, VectorTokenPtr::iterator to);
 
 	bool function_exists(const std::string& s) const {

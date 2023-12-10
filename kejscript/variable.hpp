@@ -5,7 +5,7 @@
 
 struct variable
 {
-	variable() = default;
+	variable(const std::string i) : identifier(i) {};
 	~variable() = default;
 
 	std::string identifier;

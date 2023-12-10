@@ -14,9 +14,11 @@ void linting_data::validate(VectorTokenPtr::iterator it, VectorTokenPtr::iterato
 		switch (parser_required) {
 		case codeblock_parser_type::CREATE_SCOPE:
 			active_scope = linting_create_scope_without_range(active_scope);
+
 			break;
 		case codeblock_parser_type::DELETE_SCOPE:
-			active_scope = linting_delete_scope(codepos->get(), active_scope);
+			active_scope = linting_delete_scope(it, codepos->get(), active_scope);
+
 			break;
 		default:
 			evaluate_identifier_sanity(codepos, end);
@@ -33,6 +35,18 @@ void linting_data::validate(VectorTokenPtr::iterator it, VectorTokenPtr::iterato
 		throw linting_error((--end)->get(), "expected to find a '}'");
 
 	test_all_undefined();
+
+	//find main entry 
+	auto entry = function_table.find("main");
+
+	if (entry == function_table.end())
+		throw linting_error("didn't find the main() function");
+
+	if(entry->second.parameters.size() != NULL)
+		throw linting_error("the main() function should not have parameters");
+
+
+
 }
 
 codeblock_parser_type get_codeblock_type(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end)
@@ -57,7 +71,7 @@ codeblock_parser_type get_codeblock_type(VectorTokenPtr::iterator& it, VectorTok
 void evaluate_identifier_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to)
 {
 
-	LOG("calling evaluate_identifier_sanity()\n");
+	//LOG("calling evaluate_identifier_sanity()\n");
 
 	switch (it->get()->tt) {
 	case tokentype_t::DEF:

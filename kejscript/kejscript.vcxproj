@@ -134,6 +134,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="datatype.cpp" />
+    <ClCompile Include="function.cpp" />
     <ClCompile Include="linting_evaluate.cpp" />
     <ClCompile Include="linting_scope.cpp" />
     <ClCompile Include="declaration_sanity.cpp" />
@@ -157,6 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="datatype.hpp" />
+    <ClInclude Include="function.hpp" />
     <ClInclude Include="linting_evaluate.hpp" />
     <ClInclude Include="linting_scope.hpp" />
     <ClInclude Include="linting_exceptions.hpp" />

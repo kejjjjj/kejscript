@@ -20,7 +20,7 @@ void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTo
 
 	std::advance(it, 1);
 	
-	const std::string func_identifier = it->get()->string;
+	data.current_function.identifier = it->get()->string;
 	std::vector<std::string> parameters;
 
 	//make sure that next token is (
@@ -40,11 +40,9 @@ void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTo
 
 	//if the the next punctuation mark is a closing parenthesis then there is no point in parsing the parameters
 	if (it[1].get()->is_operator(P_PAR_CLOSE) == false) {
-		parse_parameters(it, end, data.active_scope, parameters);
+		parse_parameters(it, end, data.active_scope, data.current_function.parameters);
 	}else
 		std::advance(it, 1); //skip to the ')' if there are no parameters
-
-	data.function_declare({ .location = it, .parameters = parameters, .identifier = func_identifier });
 
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '{' but encountered EOF");
@@ -54,6 +52,12 @@ void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTo
 	}
 
 	std::advance(it, 1); //because the scope was created in this function, skip the { token to avoid double scope creation
+
+	if (VECTOR_PEEK(it, 1, end) == false) {
+		throw linting_error("expected a '}' but encountered EOF");
+	}
+
+	data.current_function.start = (it + 1);
 
 }
 
@@ -116,6 +120,6 @@ void evaluate_return_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterat
 		it = evaluate_expression_sanity(it, end).it;
 	}
 
-	LOG("done!\n");
+	//LOG("done!\n");
 	
 }

@@ -23,6 +23,9 @@ bool assing_postfix_to_operand(VectorTokenPtr::iterator& it, expression_context&
 	
 	NodeVector nodes;
 
+	if(it == end)
+		return std::make_unique<expression_results>(it);
+
 
 	while (it != end && it->get()->is_operator(punctuation_e::P_SEMICOLON) == false) {
 
@@ -36,6 +39,10 @@ bool assing_postfix_to_operand(VectorTokenPtr::iterator& it, expression_context&
 		create_operator(it, ctx, nodes);
 	}
 	
+	if (nodes.size() == 1) {
+		return std::make_unique<expression_results>(it, nodes.front());
+	}
+
 	auto result = evaluate_expressions(nodes);
 
 	return std::make_unique<expression_results>(it, result);
@@ -186,11 +193,14 @@ void set_operator_priority(NodeVector::iterator& itr1, NodeVector::iterator& itr
 
 		itr2 = itr1;
 
-		auto& punctuation = std::get<expression_node::operator_s>(itr1->get()->_op).punc;
+		const auto& punctuation = std::get<expression_node::operator_s>(itr1->get()->_op).punc;
 		auto& left_operand = *--itr1;
 		auto& right_operand = *++itr2;
 
 		auto function = evaluation_functions::getInstance().find_function(punctuation);
+
+		if (function.has_value() == false)
+			throw runtime_error("unsupported operator");
 
 		*itr2 = function.value()(*left_operand, *right_operand);
 
@@ -213,12 +223,12 @@ void set_operator_priority(NodeVector::iterator& itr1, NodeVector::iterator& itr
 		op = std::get<expression_node::operator_s>(itr1->get()->_op).priority;
 		next_op = std::get<expression_node::operator_s>(itr2->get()->_op).priority;
 
-		if (itr2 == end || itr2 == (end - 1) || next_op <= op)
+		if (itr2 == end || itr2 - 1 == end || next_op <= op)
 			break;
 
 		std::advance(itr1, 2);
 		std::advance(itr2, 2);
 
-	} while (next_op > op);
+	} while (next_op > op && itr2 != end);
 	
 }

@@ -19,7 +19,11 @@ void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& 
 
 	data.active_scope = linting_create_scope_without_range(data.active_scope);
 	
+	auto block = std::make_unique<if_block>(it->get()); //create data for runtime
+
 	std::advance(it, 2); //skip the if keyword and the '('
+
+	block->condition_start = it;
 
 	expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
 	it = evaluate_expression_sanity(it, end, stack).it;
@@ -27,6 +31,9 @@ void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& 
 	if (it->get()->is_operator(P_PAR_CLOSE) == false) {
 		throw linting_error(it->get(), "expected a '%s'", punctuations[P_PAR_CLOSE].identifier.c_str());
 	}
+
+	block->condition_end = it - 1;
+	
 
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '{' instead of EOF");
@@ -36,11 +43,16 @@ void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& 
 
 	if (it->get()->is_operator(P_CURLYBRACKET_OPEN) == false) {
 		throw linting_error(it->get(), "expected a '{'");
-
 	}
 
-	data.active_scope->emit_to_lower_scope(tokentype_t::IF);
+	if (VECTOR_PEEK(it, 1, end) == false) {
+		throw linting_error("didn't expect the file to end here");
+	}
 
+	block->start = it + 1;
+
+	data.active_scope->emit_to_lower_scope(tokentype_t::IF);
+	data.active_scope->block = std::move(block);
 }
 void evaluate_else_sanity([[maybe_unused]]VectorTokenPtr::iterator& it, [[maybe_unused]] VectorTokenPtr::iterator& end)
 {
@@ -55,6 +67,9 @@ void evaluate_else_sanity([[maybe_unused]]VectorTokenPtr::iterator& it, [[maybe_
 		throw linting_error(it->get(), "expected a '{'");
 	}
 
+	auto block = std::make_unique<else_block>(it->get()); //create data for runtime
+
+
 	std::advance(it, 1);
 
 	if (it->get()->tt == tokentype_t::IF) {
@@ -64,6 +79,9 @@ void evaluate_else_sanity([[maybe_unused]]VectorTokenPtr::iterator& it, [[maybe_
 	if (it->get()->is_operator(P_CURLYBRACKET_OPEN) == false) {
 		throw linting_error(it->get(), "expected a '{'");
 	}
+
+	block->start = it + 1;
+
 
 	data.active_scope = linting_create_scope_without_range(data.active_scope);
 	data.active_scope->emit_to_lower_scope(tokentype_t::ELSE);

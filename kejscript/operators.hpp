@@ -48,6 +48,18 @@ struct expression_node {
 	Type type = Type::OPERAND;
 };
 
+template<typename T>
+std::unique_ptr<expression_node> create_rvalue(const T& t)
+{
+	std::unique_ptr<datatype> v = std::make_unique<T>(t);
+	auto oper = std::make_unique<operand>(std::move(v));
+	return std::make_unique<expression_node>(oper);
+}
+inline std::unique_ptr<expression_node> create_lvalue(variable* v)
+{
+	auto oper = std::make_unique<operand>(v);
+	return std::make_unique<expression_node>(oper);
+}
 class evaluation_functions
 {
 public:
@@ -66,6 +78,12 @@ public:
 
 private:
 	static std::unique_ptr<expression_node> arithmetic_addition(expression_node&, expression_node&);
+	static std::unique_ptr<expression_node> arithmetic_subtraction(expression_node&, expression_node&);
+
+	static std::unique_ptr<expression_node> assignment(expression_node&, expression_node&);
+
+	static std::unique_ptr<expression_node> equality(expression_node&, expression_node&);
+
 
 	std::unordered_map<punctuation_e, std::function<std::unique_ptr<expression_node>(expression_node&, expression_node&)>> eval_functions;
 
