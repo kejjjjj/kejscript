@@ -1,4 +1,10 @@
 fn main()
 {
-	def equal = 25 == 25.0000000001;
+	def incr = 0;
+
+	while(incr < 1000000)
+	{
+		incr = incr + 1;
+	}
+
 }

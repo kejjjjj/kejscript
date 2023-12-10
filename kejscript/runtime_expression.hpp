@@ -22,11 +22,11 @@ struct expression_results
 	expression_results(auto& _it, auto& expr): it(_it), expression(std::move(expr)){}
 	expression_results(auto& _it) : it(_it), expression(nullptr) {}
 
-	VectorTokenPtr::iterator it;
+	ListTokenPtr::iterator it;
 	std::unique_ptr<expression_node> expression;
 
 	expression_results& operator=(const expression_results&) = delete;
 	expression_results(const expression_results&) = delete;
 };
 
-[[nodiscard]] std::unique_ptr<expression_results> evaluate_expression(VectorTokenPtr::iterator it, VectorTokenPtr::iterator end, const expression_token_stack & = expression_token_stack());
+[[nodiscard]] std::unique_ptr<expression_results> evaluate_expression(ListTokenPtr::iterator it, ListTokenPtr::iterator end, const expression_token_stack & = expression_token_stack());

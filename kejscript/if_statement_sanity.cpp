@@ -3,7 +3,8 @@
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
 
-void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end)
+
+[[maybe_unused]] std::unique_ptr<code_block>& evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
 {
 	auto& data = linting_data::getInstance();
 
@@ -13,12 +14,14 @@ void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& 
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '(' instead of EOF");
 	}
-	else if (it[1].get()->is_operator(P_PAR_OPEN) == false) {
-		throw linting_error(it[1].get(), "expected a '('");
+	else if (std::next(it)->get()->is_operator(P_PAR_OPEN) == false) {
+		throw linting_error(std::next(it)->get(), "expected a '('");
 	}
 
-	data.active_scope = linting_create_scope_without_range(data.active_scope);
-	
+	data.active_scope = linting_create_scope_without_range(it, end, data.active_scope);
+	data.active_scope->scope_type = tokentype_t::IF;
+	auto target_token = it->get();
+
 	auto block = std::make_unique<if_block>(it->get()); //create data for runtime
 
 	std::advance(it, 2); //skip the if keyword and the '('
@@ -32,7 +35,8 @@ void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& 
 		throw linting_error(it->get(), "expected a '%s'", punctuations[P_PAR_CLOSE].identifier.c_str());
 	}
 
-	block->condition_end = it - 1;
+	dynamic_cast<punctuation_token_t*>(it->get())->punc = P_SEMICOLON;
+	block->condition_end = it;
 	
 
 	if (VECTOR_PEEK(it, 1, end) == false) {
@@ -49,12 +53,22 @@ void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& 
 		throw linting_error("didn't expect the file to end here");
 	}
 
-	block->start = it + 1;
+	//remove the { token because it is no longer relevant
+	data.remove_token(it, end);
+
+	block->start = it;
+
+	if (block->start->get()->is_operator(P_CURLYBRACKET_CLOSE)) {
+		throw linting_error(block->start->get(), "empty block");
+	}
 
 	data.active_scope->emit_to_lower_scope(tokentype_t::IF);
-	data.active_scope->block = std::move(block);
+
+	target_token->block = std::move(block);
+	data.active_scope->block = target_token->block.get();
+	return target_token->block;
 }
-void evaluate_else_sanity([[maybe_unused]]VectorTokenPtr::iterator& it, [[maybe_unused]] VectorTokenPtr::iterator& end)
+void evaluate_else_sanity([[maybe_unused]]ListTokenPtr::iterator& it, [[maybe_unused]] ListTokenPtr::iterator& end)
 {
 	auto& data = linting_data::getInstance();
 
@@ -67,23 +81,44 @@ void evaluate_else_sanity([[maybe_unused]]VectorTokenPtr::iterator& it, [[maybe_
 		throw linting_error(it->get(), "expected a '{'");
 	}
 
-	auto block = std::make_unique<else_block>(it->get()); //create data for runtime
-
 
 	std::advance(it, 1);
 
+	auto prev_block = dynamic_cast<if_block*>(data.active_scope->block);
+
+
+	//else if block
 	if (it->get()->tt == tokentype_t::IF) {
-		return evaluate_if_sanity(it, end);
+
+		if(data.active_scope->block == nullptr)
+			throw linting_error(it->get(), "how can the block be a nullptr");
+
+		auto& results = evaluate_if_sanity(it, end);
+		prev_block->next = std::move(results);
+		data.active_scope->block = prev_block->next.get();
+		return;
 	}
 
 	if (it->get()->is_operator(P_CURLYBRACKET_OPEN) == false) {
 		throw linting_error(it->get(), "expected a '{'");
 	}
 
-	block->start = it + 1;
+	if(VECTOR_PEEK(it, 1, end) == false)
+		throw linting_error(it->get(), "unexpected eof");
 
+	if (std::next(it)->get()->is_operator(P_CURLYBRACKET_CLOSE)) {
+		throw linting_error(std::next(it)->get(), "empty block");
+	}
 
-	data.active_scope = linting_create_scope_without_range(data.active_scope);
+	data.active_scope = linting_create_scope_without_range(it, end, data.active_scope);
+	data.active_scope->scope_type = tokentype_t::ELSE;
 	data.active_scope->emit_to_lower_scope(tokentype_t::ELSE);
+	
+	auto block = std::make_unique<else_block>(it->get()); //create data for runtime
+
+
+	block->start = std::next(it);
+	prev_block->next = std::move(block);
+	data.active_scope->block = prev_block->next.get();
 
 }

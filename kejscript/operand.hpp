@@ -17,7 +17,7 @@ struct operand
 	operand(std::unique_ptr<datatype>&& expr) : value(std::move(expr)), type(Type::RVALUE) {}
 
 	~operand() {
-		std::cout << "~operand()\n";
+		//std::cout << "~operand()\n";
 	}
 
 	std::variant<std::unique_ptr<datatype>, variable*> value;

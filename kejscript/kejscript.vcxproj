@@ -52,7 +52,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <EnableASAN>true</EnableASAN>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClCompile Include="datatype.cpp" />
     <ClCompile Include="function.cpp" />
+    <ClCompile Include="if_statement.cpp" />
     <ClCompile Include="linting_evaluate.cpp" />
     <ClCompile Include="linting_scope.cpp" />
     <ClCompile Include="declaration_sanity.cpp" />
@@ -155,10 +156,13 @@
     <ClCompile Include="script.cpp" />
     <ClCompile Include="tokenizer.cpp" />
     <ClCompile Include="variable.cpp" />
+    <ClCompile Include="while_statement.cpp" />
+    <ClCompile Include="while_statement_sanity.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="datatype.hpp" />
     <ClInclude Include="function.hpp" />
+    <ClInclude Include="if_statement.hpp" />
     <ClInclude Include="linting_evaluate.hpp" />
     <ClInclude Include="linting_scope.hpp" />
     <ClInclude Include="linting_exceptions.hpp" />
@@ -174,6 +178,7 @@
     <ClInclude Include="script.hpp" />
     <ClInclude Include="tokenizer.hpp" />
     <ClInclude Include="variable.hpp" />
+    <ClInclude Include="while_statement.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

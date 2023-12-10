@@ -81,7 +81,7 @@ private:
 	static std::unique_ptr<expression_node> arithmetic_subtraction(expression_node&, expression_node&);
 
 	static std::unique_ptr<expression_node> assignment(expression_node&, expression_node&);
-
+	static std::unique_ptr<expression_node> less_than(expression_node&, expression_node&);
 	static std::unique_ptr<expression_node> equality(expression_node&, expression_node&);
 
 

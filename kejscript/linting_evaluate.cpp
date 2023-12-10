@@ -2,7 +2,7 @@
 
 #include "linting_evaluate.hpp"
 
-void linting_data::validate(VectorTokenPtr::iterator it, VectorTokenPtr::iterator end)
+void linting_data::validate(ListTokenPtr::iterator it, ListTokenPtr::iterator end)
 {
 	active_scope = new linting_scope;
 
@@ -13,12 +13,10 @@ void linting_data::validate(VectorTokenPtr::iterator it, VectorTokenPtr::iterato
 
 		switch (parser_required) {
 		case codeblock_parser_type::CREATE_SCOPE:
-			active_scope = linting_create_scope_without_range(active_scope);
-
+			active_scope = linting_create_scope_without_range(it, end, active_scope);
 			break;
 		case codeblock_parser_type::DELETE_SCOPE:
-			active_scope = linting_delete_scope(it, codepos->get(), active_scope);
-
+			active_scope = linting_delete_scope(it, end, codepos->get(), active_scope);
 			break;
 		default:
 			evaluate_identifier_sanity(codepos, end);
@@ -49,7 +47,7 @@ void linting_data::validate(VectorTokenPtr::iterator it, VectorTokenPtr::iterato
 
 }
 
-codeblock_parser_type get_codeblock_type(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end)
+codeblock_parser_type get_codeblock_type(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
 {
 	if (it == end)
 		throw linting_error("get_codeblock_type(): it == end");
@@ -68,7 +66,7 @@ codeblock_parser_type get_codeblock_type(VectorTokenPtr::iterator& it, VectorTok
 
 }
 
-void evaluate_identifier_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to)
+void evaluate_identifier_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to)
 {
 
 	//LOG("calling evaluate_identifier_sanity()\n");
@@ -81,9 +79,12 @@ void evaluate_identifier_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::it
 	case tokentype_t::RETURN:
 		return evaluate_return_sanity(it, to);
 	case tokentype_t::IF:
-		return evaluate_if_sanity(it, to);
+		evaluate_if_sanity(it, to);
+		return;
 	case tokentype_t::ELSE:
 		return evaluate_else_sanity(it, to);
+	case tokentype_t::WHILE:
+		return evaluate_while_sanity(it, to);
 	}
 
 	it = evaluate_expression_sanity(it, to).it;

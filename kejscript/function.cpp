@@ -2,7 +2,7 @@
 #include "runtime_declaration.hpp"
 #include "runtime.hpp"
 
-void transfer_code_execution(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, const VectorTokenPtr::iterator& return_loc, const function_def& func)
+void transfer_code_execution(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, const ListTokenPtr::iterator& return_loc, const function_def& func)
 {
 	LOG("calling '" << func.identifier << "'\n");
 

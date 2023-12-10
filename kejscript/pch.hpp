@@ -2,7 +2,7 @@
 
 #define NOMINMAX
 
-#define ENABLE_linting_LOGGING 1
+#define ENABLE_linting_LOGGING 0
 
 #if ENABLE_linting_LOGGING
 #define LOG(x) std::cout << x
@@ -10,7 +10,7 @@
 #define LOG(x)
 #endif
 
-#define VECTOR_PEEK(it, index, end) (it + index != end)
+#define VECTOR_PEEK(it, index, end) (std::next(it) != end)
 
 
 #include <Windows.h>

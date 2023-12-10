@@ -22,6 +22,7 @@ struct runtime_error
 	runtime_error(const std::string& reason, const Args&&... args) : errReason(reason) {
 		char buffer[512];
 		std::snprintf(buffer, sizeof(buffer), reason.c_str(), args...);
+
 		errReason = buffer;
 	};
 	runtime_error() = delete;

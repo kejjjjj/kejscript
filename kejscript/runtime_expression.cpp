@@ -4,20 +4,20 @@
 #include "runtime_exception.hpp"
 #include "operators.hpp"
 
-using NodeVector = std::vector<std::unique_ptr<expression_node>>;
+using NodeVector = std::list<std::unique_ptr<expression_node>>;
 
-void create_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& stack, NodeVector& nodes);
-void create_operator(VectorTokenPtr::iterator& it, expression_context& stack, NodeVector& nodes);
+void create_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& stack, NodeVector& nodes);
+void create_operator(ListTokenPtr::iterator& it, expression_context& stack, NodeVector& nodes);
 
-bool assign_unary_to_operand(VectorTokenPtr::iterator& it, expression_context& context);
-std::unique_ptr<expression_node> assign_identifier_to_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context);
-bool assing_postfix_to_operand(VectorTokenPtr::iterator& it, expression_context& context);
+bool assign_unary_to_operand(ListTokenPtr::iterator& it, expression_context& context);
+std::unique_ptr<expression_node> assign_identifier_to_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& context);
+bool assing_postfix_to_operand(ListTokenPtr::iterator& it, expression_context& context);
 
 [[nodiscard]] std::unique_ptr<expression_node> evaluate_expressions(NodeVector& nodes);
 
 
 
-[[nodiscard]] std::unique_ptr<expression_results> evaluate_expression(VectorTokenPtr::iterator it, VectorTokenPtr::iterator end, const expression_token_stack& stack)
+[[nodiscard]] std::unique_ptr<expression_results> evaluate_expression(ListTokenPtr::iterator it, ListTokenPtr::iterator end, const expression_token_stack& stack)
 {
 	expression_context ctx(stack);
 	
@@ -48,7 +48,7 @@ bool assing_postfix_to_operand(VectorTokenPtr::iterator& it, expression_context&
 	return std::make_unique<expression_results>(it, result);
 }
 
-void create_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& ctx, NodeVector& nodes)
+void create_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& ctx, NodeVector& nodes)
 {
 	while (assign_unary_to_operand(it, ctx));
 	auto node = assign_identifier_to_operand(it, end, ctx);
@@ -58,7 +58,6 @@ void create_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end,
 		return;
 
 	ctx.expression.op.is_operator = false;
-	ctx.expressions.push_back(ctx.expression);
 
 	if(!node)
 		node = std::make_unique<expression_node>(ctx.expression);
@@ -68,7 +67,7 @@ void create_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end,
 	ctx.expression = expression_t();
 
 }
-void create_operator(VectorTokenPtr::iterator& it, expression_context& ctx, NodeVector& nodes)
+void create_operator(ListTokenPtr::iterator& it, expression_context& ctx, NodeVector& nodes)
 {
 	if (it->get()->is_operator(punctuation_e::P_SEMICOLON))
 		return;
@@ -82,21 +81,13 @@ void create_operator(VectorTokenPtr::iterator& it, expression_context& ctx, Node
 
 	const auto token = dynamic_cast<punctuation_token_t*>(it->get());
 
-	expression_t expression;
-	expression.op.is_operator = true;
-	expression.op.punc = token->punc;
-	expression.op.priority = token->priority;
-
-	expression.identifier = token;
-	ctx.expressions.push_back(expression);
-
 	auto node = std::make_unique<expression_node>(expression_node::operator_s(token->punc, token->priority));
 	nodes.push_back(std::move(node));
 
 	std::advance(it, 1);
 	return;
 }
-bool assign_unary_to_operand(VectorTokenPtr::iterator& it, expression_context& context)
+bool assign_unary_to_operand(ListTokenPtr::iterator& it, expression_context& context)
 {
 
 	context.stack.assign_to_stack_if_possible(it);
@@ -121,7 +112,7 @@ bool assign_unary_to_operand(VectorTokenPtr::iterator& it, expression_context& c
 	std::advance(it, 1);
 	return true;
 }
-std::unique_ptr<expression_node> assign_identifier_to_operand(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, expression_context& context)
+std::unique_ptr<expression_node> assign_identifier_to_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& context)
 {
 
 	context.stack.assign_to_stack_if_possible(it);
@@ -153,7 +144,7 @@ std::unique_ptr<expression_node> assign_identifier_to_operand(VectorTokenPtr::it
 	return nullptr;
 
 }
-bool assing_postfix_to_operand(VectorTokenPtr::iterator& it, expression_context& context)
+bool assing_postfix_to_operand(ListTokenPtr::iterator& it, expression_context& context)
 {
 
 	context.stack.assign_to_stack_if_possible(it);
@@ -223,7 +214,7 @@ void set_operator_priority(NodeVector::iterator& itr1, NodeVector::iterator& itr
 		op = std::get<expression_node::operator_s>(itr1->get()->_op).priority;
 		next_op = std::get<expression_node::operator_s>(itr2->get()->_op).priority;
 
-		if (itr2 == end || itr2 - 1 == end || next_op <= op)
+		if (itr2 == end || std::prev(itr2) == end || next_op <= op)
 			break;
 
 		std::advance(itr1, 2);

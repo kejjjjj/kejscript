@@ -2,7 +2,7 @@
 
 #include "linting_evaluate.hpp"
 
-[[nodiscard]] VectorTokenPtr::iterator evaluate_subscript_sanity(VectorTokenPtr::iterator it, VectorTokenPtr::iterator& end, l_expression_context& context)
+[[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(ListTokenPtr::iterator it, ListTokenPtr::iterator& end, l_expression_context& context)
 {
 
 	//check the next token
@@ -29,7 +29,7 @@
 	return it;
 
 }
-[[nodiscard]] VectorTokenPtr::iterator  evaluate_function_call_sanity(VectorTokenPtr::iterator it, VectorTokenPtr::iterator& end, [[maybe_unused]] l_expression_context& context)
+[[nodiscard]] ListTokenPtr::iterator  evaluate_function_call_sanity(ListTokenPtr::iterator it, ListTokenPtr::iterator& end, [[maybe_unused]] l_expression_context& context)
 {
 	//check the next token
 	if (VECTOR_PEEK(it, 1, end) == false) {

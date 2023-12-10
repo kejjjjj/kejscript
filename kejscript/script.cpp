@@ -154,6 +154,7 @@ const std::unordered_map<std::string, tokentype_t> tokenMap = {
 	{"return",  tokentype_t::RETURN},
 	{"if",		tokentype_t::IF},
 	{"else",	tokentype_t::ELSE},
+	{"while",	tokentype_t::WHILE},
 	{"true",	tokentype_t::_TRUE},
 	{"false",	tokentype_t::_FALSE}
 };
@@ -256,6 +257,7 @@ bool script_t::parse_int(token_t& token)
 void script_t::validate()
 {
 	auto& data = linting_data::getInstance();
+	data.tokens = &tokens;
 	data.validate(tokens.begin(), tokens.end());
 
 }
@@ -264,6 +266,19 @@ void script_t::execute()
 	runtime& rt = runtime::get_instance();
 
 	rt.initialize(tokens.begin(), tokens.end(), linting_data::getInstance().function_table);
+	
+	std::chrono::time_point<std::chrono::steady_clock> old = std::chrono::steady_clock::now();
+
 	rt.execute();
+
+	std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+	std::chrono::duration<float> difference = now - old;
+
+	rt.stack->print_stack();
+
+
+	printf("\ntime taken: %.6f\n", difference.count());
+
+
 
 }

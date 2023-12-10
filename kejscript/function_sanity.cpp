@@ -3,9 +3,9 @@
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
 
-void parse_parameters(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, linting_scope* scope, std::vector<std::string>& parameters);
+void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, std::vector<std::string>& parameters);
 
-void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end)
+void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
 {
 	auto& data = linting_data::getInstance();
 	
@@ -13,7 +13,7 @@ void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTo
 		throw linting_error(it->get(), "function declarations are only allowed in the global scope");
 	}
 
-	if (VECTOR_PEEK(it, 1, end) == false || it[1].get()->is_identifier() == false) {
+	if (VECTOR_PEEK(it, 1, end) == false || std::next(it)->get()->is_identifier() == false) {
 		throw linting_error(it->get(), "expected a name for the function");
 	}
 
@@ -24,14 +24,14 @@ void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTo
 	std::vector<std::string> parameters;
 
 	//make sure that next token is (
-	if (VECTOR_PEEK(it, 1, end) == false || it[1].get()->is_operator(P_PAR_OPEN) == false) {
+	if (VECTOR_PEEK(it, 1, end) == false || std::next(it)->get()->is_operator(P_PAR_OPEN) == false) {
 		throw linting_error(it->get(), "expected a '('");
 	}
 
 	std::advance(it, 1);
 
 	//create the scope for the function
-	data.active_scope = linting_create_scope_without_range(data.active_scope);
+	data.active_scope = linting_create_scope_without_range(it, end, data.active_scope);
 	data.active_scope->is_inside_of_a_function = true;
 	//start parsing the parameters
 
@@ -39,7 +39,7 @@ void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTo
 		throw linting_error(it->get(), "WHAT ARE THESE RANDOM END OF FILES!!!!");
 
 	//if the the next punctuation mark is a closing parenthesis then there is no point in parsing the parameters
-	if (it[1].get()->is_operator(P_PAR_CLOSE) == false) {
+	if (std::next(it)->get()->is_operator(P_PAR_CLOSE) == false) {
 		parse_parameters(it, end, data.active_scope, data.current_function.parameters);
 	}else
 		std::advance(it, 1); //skip to the ')' if there are no parameters
@@ -47,21 +47,24 @@ void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTo
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '{' but encountered EOF");
 	}
-	else if (it[1].get()->is_operator(P_CURLYBRACKET_OPEN) == false) {
-		throw linting_error(it[1].get(), "expected a '{'");
+	else if (std::next(it)->get()->is_operator(P_CURLYBRACKET_OPEN) == false) {
+		throw linting_error(std::next(it)->get(), "expected a '{'");
 	}
 
 	std::advance(it, 1); //because the scope was created in this function, skip the { token to avoid double scope creation
+
+	//remove the { token because it is no longer relevant
+	data.remove_token(it, end);
 
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '}' but encountered EOF");
 	}
 
-	data.current_function.start = (it + 1);
+	data.current_function.start = std::next(it);
 
 }
 
-void parse_parameters(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end, linting_scope* scope, std::vector<std::string>& parameters)
+void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, std::vector<std::string>& parameters)
 {
 	
 	if (it == end)
@@ -73,8 +76,8 @@ void parse_parameters(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& en
 	if (VECTOR_PEEK(it, 1, end) == false) { 
 		throw linting_error(it->get(), "expected an identifier");
 	}
-	else if (it[1].get()->is_identifier() == false) {
-		throw linting_error(it[1].get(), "expected an identifier");
+	else if (std::next(it)->get()->is_identifier() == false) {
+		throw linting_error(std::next(it)->get(), "expected an identifier");
 	}
 
 	std::advance(it, 1);
@@ -100,7 +103,7 @@ void parse_parameters(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& en
 	return;
 
 }
-void evaluate_return_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end)
+void evaluate_return_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
 {
 
 	auto& c_data = linting_data::getInstance();

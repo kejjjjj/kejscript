@@ -9,7 +9,7 @@
 struct undefined_variable
 {
 	std::string identifier;
-	VectorTokenPtr::iterator location;
+	ListTokenPtr::iterator location;
 	size_t num_args = 0;
 	bool function = false;
 };
@@ -18,7 +18,15 @@ struct linting_data
 	static linting_data& getInstance() { static linting_data d; return d; }
 	linting_scope* active_scope = 0;
 	function_def current_function;
-	void validate(VectorTokenPtr::iterator it, VectorTokenPtr::iterator to);
+	ListTokenPtr* tokens = 0;
+	void validate(ListTokenPtr::iterator it, ListTokenPtr::iterator to);
+
+	void remove_token(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to) {
+		bool is_end = (to == tokens->end());
+		auto end_diff = std::distance(tokens->begin(), to);
+		it = std::prev(tokens->erase(it, std::next(it)));
+		to = is_end ? tokens->end() : std::next(tokens->begin(),  end_diff - 1);
+	}
 
 	bool function_exists(const std::string& s) const {
 		return function_table.find(s) != function_table.end();
@@ -84,20 +92,21 @@ struct l_expression_context
 
 struct l_expression_results
 {
-	VectorTokenPtr::iterator it;
+	ListTokenPtr::iterator it;
 	size_t num_evaluations = 0;
 };
 
-codeblock_parser_type get_codeblock_type(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
+codeblock_parser_type get_codeblock_type(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
-void evaluate_identifier_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
+void evaluate_identifier_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
-void evaluate_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
-[[nodiscard]] l_expression_results evaluate_expression_sanity(VectorTokenPtr::iterator it, VectorTokenPtr::iterator to, const expression_token_stack& = expression_token_stack());
-void evaluate_function_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
-void evaluate_return_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
-void evaluate_if_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
-void evaluate_else_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& to);
+void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+[[nodiscard]] l_expression_results evaluate_expression_sanity(ListTokenPtr::iterator it, ListTokenPtr::iterator to, const expression_token_stack& = expression_token_stack());
+void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+void evaluate_return_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+std::unique_ptr<code_block>& evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+void evaluate_else_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
-[[nodiscard]] VectorTokenPtr::iterator evaluate_subscript_sanity(VectorTokenPtr::iterator begin, VectorTokenPtr::iterator& end, l_expression_context& context);
-[[nodiscard]] VectorTokenPtr::iterator  evaluate_function_call_sanity(VectorTokenPtr::iterator begin, VectorTokenPtr::iterator& end, l_expression_context& context);
+[[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(ListTokenPtr::iterator begin, ListTokenPtr::iterator& end, l_expression_context& context);
+[[nodiscard]] ListTokenPtr::iterator  evaluate_function_call_sanity(ListTokenPtr::iterator begin, ListTokenPtr::iterator& end, l_expression_context& context);

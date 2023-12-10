@@ -3,7 +3,7 @@
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
 
-void evaluate_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end)
+void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
 {
 	auto scope = linting_data::getInstance().active_scope;
 
@@ -25,17 +25,23 @@ void evaluate_declaration_sanity(VectorTokenPtr::iterator& it, VectorTokenPtr::i
 	LOG("declaring: '" << it->get()->string << "'\n");
 
 	//check if the next token is valid
-	if (VECTOR_PEEK(it, 1, end) == false || it[1].get()->is_operator(P_SEMICOLON)) {
+	if (VECTOR_PEEK(it, 1, end) == false) {
 		//if not, then there is no initializer
 		std::advance(it, 1);
 		return;
+	
 	}
 	
-	if (it[1].get()->is_punctuation()) {
-		const auto punc = dynamic_cast<punctuation_token_t*>(it[1].get())->punc;
+	if (std::next(it)->get()->is_operator(P_SEMICOLON)) {
+		std::advance(it, 1);
+		return;
+	}
+
+	if (std::next(it)->get()->is_punctuation()) {
+		const auto punc = dynamic_cast<punctuation_token_t*>(std::next(it)->get())->punc;
 
 		if(punc != punctuation_e::P_ASSIGN && punc != punctuation_e::P_SEMICOLON)
-			throw linting_error(it[1].get(), "expected a '=' or ';'");
+			throw linting_error(it->get(), "expected a '=' or ';'");
 	}
 	
 	std::advance(it, 2); //skip the identifier and the = punctuation

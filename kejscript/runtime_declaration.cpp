@@ -2,7 +2,7 @@
 #include "runtime.hpp"
 #include "runtime_expression.hpp"
 
-void declare_variable(VectorTokenPtr::iterator& it, VectorTokenPtr::iterator& end)
+void declare_variable(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
 {
 	std::advance(it, 1); //skip the def keyword
 

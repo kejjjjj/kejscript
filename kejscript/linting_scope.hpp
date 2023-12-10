@@ -27,10 +27,10 @@ public:
 	}
 
 	void print_stack() const noexcept {
-		LOG("----- local vars -----\n\n");
+		std::cout << ("----- local vars -----\n\n");
 		for (auto& v : variable_table)
-			LOG(v << '\n');
-		LOG('\n');
+			std::cout << v << '\n';
+		std::cout << ('\n');
 	}
 	bool is_function_scope() const noexcept {
 		return is_inside_of_a_function;
@@ -45,7 +45,9 @@ public:
 
 	linting_scope* lower_scope = 0;
 	bool is_inside_of_a_function = false;
-	std::unique_ptr<code_block> block;
+	code_block* block = nullptr;
+
+	tokentype_t scope_type = tokentype_t::UNKNOWN;
 
 private:
 	tokentype_t upper_scope_type = tokentype_t::UNKNOWN;
@@ -56,5 +58,5 @@ private:
 
 };
 
-linting_scope* linting_create_scope_without_range(linting_scope* block);
-linting_scope* linting_delete_scope(VectorTokenPtr::iterator& it, token_t* token, linting_scope* block);
+linting_scope* linting_create_scope_without_range(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* block);
+linting_scope* linting_delete_scope(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, token_t* token, linting_scope* block);

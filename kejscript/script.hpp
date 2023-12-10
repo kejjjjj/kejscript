@@ -17,7 +17,7 @@ struct script_t
 
 	void validate();
 	void execute();
-	VectorTokenPtr::iterator& get_code_pos() { return token_it; }
+	ListTokenPtr::iterator& get_code_pos() { return token_it; }
 
 private:
 
@@ -30,7 +30,7 @@ private:
 	bool parse_int(token_t& token);
 
 
-	VectorTokenPtr tokens; //every token in this script file
+	ListTokenPtr tokens; //every token in this script file
 	decltype(tokens)::iterator token_it; //current position of the iterator
 
 	script_t(const script_t&) = delete;

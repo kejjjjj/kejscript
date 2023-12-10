@@ -13,6 +13,8 @@ void evaluation_functions::initialize_functions()
 	eval_functions.insert({ P_SUB, arithmetic_subtraction });
 
 	eval_functions.insert({ P_ASSIGN, assignment });
+	eval_functions.insert({ P_LESS_THAN, less_than });
+
 	eval_functions.insert({ P_EQUALITY, equality });
 
 	once = false;
@@ -101,8 +103,9 @@ std::unique_ptr<expression_node> evaluation_functions::equality(expression_node&
 
 	switch (left_value.type()) {
 	case datatype_e::bool_t:
-		return create_rvalue<bool_dt>(datatype::cast<bool_dt>(&left_value) == datatype::cast<bool_dt>(&right_value));
-	
+		return create_rvalue<bool_dt>(datatype::create_type<bool_dt, bool>
+			(datatype::cast_normal<bool_dt>(&left_value) == datatype::cast_normal<bool_dt>(&right_value)));
+
 	case datatype_e::int_t:
 		return create_rvalue<bool_dt>(datatype::create_type<bool_dt, bool>
 	(datatype::cast_normal<integer_dt>(&left_value) == datatype::cast_normal<integer_dt>(&right_value)));	
@@ -111,6 +114,32 @@ std::unique_ptr<expression_node> evaluation_functions::equality(expression_node&
 		return create_rvalue<bool_dt>(datatype::create_type<bool_dt, bool>
 			(datatype::cast_normal<double_dt>(&left_value) == datatype::cast_normal<double_dt>(&right_value)));
 
+	}
+
+	return nullptr;
+}
+std::unique_ptr<expression_node> evaluation_functions::less_than(expression_node& left, expression_node& right)
+{
+	const auto& left_operand = std::get<std::unique_ptr<operand>>(left._op);
+	const auto& right_operand = std::get<std::unique_ptr<operand>>(right._op);
+
+	left_operand->implicit_cast(*right_operand, left_operand->lvalue_to_rvalue(), right_operand->lvalue_to_rvalue());
+
+	auto& left_value = *left_operand->get_value();
+	auto& right_value = *right_operand->get_value();
+
+	switch (left_value.type()) {
+	case datatype_e::bool_t:
+		return create_rvalue<bool_dt>(datatype::create_type<bool_dt, bool>
+			(datatype::cast_normal<bool_dt>(&left_value) < datatype::cast_normal<bool_dt>(&right_value)));
+
+	case datatype_e::int_t:
+		return create_rvalue<bool_dt>(datatype::create_type<bool_dt, bool>
+			(datatype::cast_normal<integer_dt>(&left_value) < datatype::cast_normal<integer_dt>(&right_value)));
+
+	case datatype_e::double_t:
+		return create_rvalue<bool_dt>(datatype::create_type<bool_dt, bool>
+			(datatype::cast_normal<double_dt>(&left_value) < datatype::cast_normal<double_dt>(&right_value)));
 	}
 
 	return nullptr;

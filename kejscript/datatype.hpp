@@ -78,17 +78,18 @@ struct bool_dt : public datatype
 
 	bool_dt operator+(const bool_dt& other) const {
 		bool result = this->get() + other.get();
-		LOG("result: " << (result ? "true" : "false") << '\n');
 		return (decltype(*this))(result);
 	}
 	bool_dt operator-(const bool_dt& other) const {
 		bool result = this->get() - other.get();
-		LOG("result: " << (result ? "true" : "false") << '\n');
 		return (decltype(*this))(result);
 	}
 	bool_dt operator==(const bool_dt& other) const {
 		bool result = this->get() == other.get();
-		LOG("result: " << (result ? "true" : "false") << '\n');
+		return (decltype(*this))(result);
+	}
+	bool_dt operator<(const bool_dt& other) const {
+		bool result = this->get() < other.get();
 		return (decltype(*this))(result);
 	}
 };
@@ -111,17 +112,18 @@ struct integer_dt : public datatype
 
 	integer_dt operator+(const integer_dt& other) const {
 		auto result = this->get() + other.get();
-		LOG("result: " << result << '\n');
 		return (decltype(*this))(result);
 	}
 	integer_dt operator-(const integer_dt& other) const {
 		auto result = this->get() - other.get();
-		LOG("result: " << result << '\n');
 		return (decltype(*this))(result);
 	}
 	integer_dt operator==(const integer_dt& other) const {
 		bool result = this->get() == other.get();
-		LOG("result: " << (result ? "true" : "false") << '\n');
+		return (decltype(*this))(result);
+	}
+	integer_dt operator<(const integer_dt& other) const {
+		bool result = this->get() < other.get();
 		return (decltype(*this))(result);
 	}
 };
@@ -143,17 +145,18 @@ struct double_dt : public datatype
 
 	double_dt operator+(const double_dt& other) const {
 		auto result = this->get() + other.get();
-		LOG("result: " << result << '\n');
 		return (decltype(*this))(result);
 	}
 	double_dt operator-(const double_dt& other) const {
 		auto result = this->get() - other.get();
-		LOG("result: " << result << '\n');
 		return (decltype(*this))(result);
 	}
 	double_dt operator==(const double_dt& other) const {
 		bool result = this->get() == other.get();
-		LOG("result: " << (result ? "true" : "false") << '\n');
+		return (decltype(*this))(result);
+	}
+	double_dt operator<(const double_dt& other) const {
+		bool result = this->get() < other.get();
 		return (decltype(*this))(result);
 	}
 };

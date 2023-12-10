@@ -37,12 +37,16 @@ int main()
         return 0;
     }
 
+
     try {
         script.execute();
     }
     catch (runtime_error& ex) {
         std::cout << ex.what() << "\n\n";
+        LOG("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+
     }
+
 
 
     return 1;
