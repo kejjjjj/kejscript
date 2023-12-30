@@ -13,7 +13,7 @@ void linting_data::validate(ListTokenPtr::iterator it, ListTokenPtr::iterator en
 
 		switch (parser_required) {
 		case codeblock_parser_type::CREATE_SCOPE:
-			active_scope = linting_create_scope_without_range(it, end, active_scope);
+			active_scope = linting_create_scope_without_range(active_scope);
 			break;
 		case codeblock_parser_type::DELETE_SCOPE:
 			active_scope = linting_delete_scope(it, end, codepos->get(), active_scope);

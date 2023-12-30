@@ -18,7 +18,7 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 	}
 
 
-	std::advance(it, 1);
+	std::advance(it, 1); //skip fn
 	
 	data.current_function.identifier = it->get()->string;
 	std::vector<std::string> parameters;
@@ -28,10 +28,10 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 		throw linting_error(it->get(), "expected a '('");
 	}
 
-	std::advance(it, 1);
+	std::advance(it, 1); //skip the (
 
 	//create the scope for the function
-	data.active_scope = linting_create_scope_without_range(it, end, data.active_scope);
+	data.active_scope = linting_create_scope_without_range(data.active_scope);
 	data.active_scope->is_inside_of_a_function = true;
 	//start parsing the parameters
 
@@ -53,14 +53,11 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 
 	std::advance(it, 1); //because the scope was created in this function, skip the { token to avoid double scope creation
 
-	//remove the { token because it is no longer relevant
-	data.remove_token(it, end);
-
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '}' but encountered EOF");
 	}
 
-	data.current_function.start = std::next(it);
+	data.current_function.start = (it);
 
 }
 

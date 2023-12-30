@@ -2,7 +2,7 @@
 
 #define NOMINMAX
 
-#define ENABLE_linting_LOGGING 0
+#define ENABLE_linting_LOGGING 1
 
 #if ENABLE_linting_LOGGING
 #define LOG(x) std::cout << x
@@ -11,6 +11,9 @@
 #endif
 
 #define VECTOR_PEEK(it, index, end) (std::next(it) != end)
+
+#define NO_COPY_CONSTRUCTOR(CLASS) const CLASS& operator=(const CLASS&) = delete; \
+CLASS(const CLASS&) = delete
 
 
 #include <Windows.h>
@@ -37,6 +40,7 @@
 //#include "linting_exceptions.hpp"
 //#include "linting_scope.hpp"
 //#include "linting_evaluate.hpp"
+
 
 #include "file_io.hpp"
 

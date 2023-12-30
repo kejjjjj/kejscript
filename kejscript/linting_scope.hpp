@@ -53,10 +53,9 @@ private:
 	tokentype_t upper_scope_type = tokentype_t::UNKNOWN;
 	std::unordered_set<std::string> variable_table;
 	
-	linting_scope& operator=(const linting_scope&) = delete;
-	linting_scope(const linting_scope&) = delete;
+	NO_COPY_CONSTRUCTOR(linting_scope);
 
 };
 
-linting_scope* linting_create_scope_without_range(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* block);
+linting_scope* linting_create_scope_without_range(linting_scope* block);
 linting_scope* linting_delete_scope(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, token_t* token, linting_scope* block);

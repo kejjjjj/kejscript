@@ -12,7 +12,7 @@ struct operand
 		RVALUE
 	}type = Type::LVALUE;
 
-	operand(const expression_t& expr);
+	operand(singular& expr);
 	operand(variable* v) : value(v), type(Type::LVALUE) {}
 	operand(std::unique_ptr<datatype>&& expr) : value(std::move(expr)), type(Type::RVALUE) {}
 
@@ -33,8 +33,7 @@ struct operand
 	token_t* _operand = nullptr;
 
 private:
-	operand& operator=(const operand&) = delete;
-	operand(const operand&) = delete;
+	NO_COPY_CONSTRUCTOR(operand);
 
 
 };

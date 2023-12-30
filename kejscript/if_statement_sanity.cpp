@@ -18,7 +18,7 @@
 		throw linting_error(std::next(it)->get(), "expected a '('");
 	}
 
-	data.active_scope = linting_create_scope_without_range(it, end, data.active_scope);
+	data.active_scope = linting_create_scope_without_range(it, data.active_scope);
 	data.active_scope->scope_type = tokentype_t::IF;
 	auto target_token = it->get();
 
@@ -52,9 +52,6 @@
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("didn't expect the file to end here");
 	}
-
-	//remove the { token because it is no longer relevant
-	data.remove_token(it, end);
 
 	block->start = it;
 
@@ -110,7 +107,7 @@ void evaluate_else_sanity([[maybe_unused]]ListTokenPtr::iterator& it, [[maybe_un
 		throw linting_error(std::next(it)->get(), "empty block");
 	}
 
-	data.active_scope = linting_create_scope_without_range(it, end, data.active_scope);
+	data.active_scope = linting_create_scope_without_range(it, data.active_scope);
 	data.active_scope->scope_type = tokentype_t::ELSE;
 	data.active_scope->emit_to_lower_scope(tokentype_t::ELSE);
 	

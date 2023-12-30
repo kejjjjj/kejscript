@@ -17,16 +17,19 @@ void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 		throw linting_error(std::next(it)->get(), "expected a '('");
 	}
 
-	data.active_scope = linting_create_scope_without_range(it, end, data.active_scope);
+	data.active_scope = linting_create_scope_without_range(it, data.active_scope);
 	data.active_scope->scope_type = tokentype_t::WHILE;
 	auto target_token = it->get();
 
 
 	auto block = std::make_unique<while_block>(it->get()); //create data for runtime
 
-	std::advance(it, 2); //skip the while keyword and the '('
+	std::advance(it, 1); //skip the while keyword
 
+	std::advance(it, 1);
 	block->condition_start = it;
+
+	token_t* start = it->get();
 
 	expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
 	it = evaluate_expression_sanity(it, end, stack).it;
@@ -35,15 +38,14 @@ void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 		throw linting_error(it->get(), "expected a '%s'", punctuations[P_PAR_CLOSE].identifier.c_str());
 	}
 
-	dynamic_cast<punctuation_token_t*>(it->get())->punc = P_SEMICOLON;
-	block->condition_end = it;
+	//dynamic_cast<punctuation_token_t*>(it->get())->punc = P_SEMICOLON;
 
 
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '{' instead of EOF");
 	}
 
-	std::advance(it, 1); //skip the ')'
+	std::advance(it, 1);
 
 	if (it->get()->is_operator(P_CURLYBRACKET_OPEN) == false) {
 		throw linting_error(it->get(), "expected a '{'");
@@ -54,9 +56,10 @@ void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 	}
 
 	//remove the { token because it is no longer relevant
-	data.remove_token(it, end);
-
+	block->condition_end = it;
 	block->start = it;
+
+	start->block->end = block->start;
 
 	if (block->start->get()->is_operator(P_CURLYBRACKET_CLOSE)) {
 		throw linting_error(block->start->get(), "empty block");

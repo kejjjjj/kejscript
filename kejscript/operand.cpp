@@ -2,17 +2,19 @@
 #include "runtime_exception.hpp"
 #include "runtime.hpp"
 
-operand::operand(const expression_t& expr) : value(), _operand(expr.identifier)
+operand::operand(singular& expr) : value(), _operand(expr.token)
 {
 	using rvalue = std::unique_ptr<datatype>;
 
 
 	static_assert(std::variant_size_v<decltype(value)> == 2, "No alternatives in the variant");
 
+	auto& oper = std::get<validation_expression>(expr.value);
 
-	if (expr.identifier->is_identifier()) {
+	if (oper.type == validation_expression::Type::OTHER) {
 		const auto& table = runtime::get_instance().stack->variables;
-		variable* r = table.find(expr.identifier->string)->second.get();
+
+		variable* r = table[ std::get<validation_expression::other>(oper.value).variable_index ].get();
 		value = r;
 		type = Type::LVALUE;
 
@@ -20,19 +22,21 @@ operand::operand(const expression_t& expr) : value(), _operand(expr.identifier)
 	}
 	else {
 		type = Type::RVALUE;
-		switch (expr.identifier->tt) {
-		case tokentype_t::NUMBER_LITERAL:
-			value = std::make_unique<integer_dt>(std::stoi(expr.identifier->string));
+		auto& literal = std::get<validation_expression::literal>(oper.value);
+		using literalType = validation_expression::literal;
+		switch (literal.type) {
+		case literalType::NUMBER_LITERAL:
+			value = std::make_unique<integer_dt>(*reinterpret_cast<int32_t*>(literal.value.data()));
 			break;
-		case tokentype_t::FLOAT_LITERAL:
-			value = std::make_unique<double_dt>(std::stod(expr.identifier->string));
+		case literalType::FLOAT_LITERAL:
+			value = std::make_unique<double_dt>(*reinterpret_cast<double*>(literal.value.data()));
 			break;
-		case tokentype_t::_TRUE:
-		case tokentype_t::_FALSE:
-			value = std::make_unique<bool_dt>(expr.identifier->tt == tokentype_t::_TRUE ? true : false);
+		case literalType::_TRUE:
+		case literalType::_FALSE:
+			value = std::make_unique<bool_dt>(literal.type == literalType::_TRUE ? true : false);
 			break;
 		default:
-			throw runtime_error(expr.identifier, "huh?");
+			throw runtime_error(expr.token, "huh?");
 		}
 	}
 	

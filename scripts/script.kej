@@ -1,10 +1,4 @@
 fn main()
 {
-	def incr = 0;
-
-	while(incr < 1000000)
-	{
-		incr = incr + 1;
-	}
-
+	3 + 2 < 1 + 2;
 }

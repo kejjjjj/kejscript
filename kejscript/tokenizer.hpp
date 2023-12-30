@@ -45,6 +45,9 @@ struct token_t
 	tokentype_t tt = tokentype_t::UNKNOWN;
 	size_t line = 0;
 	size_t column = 0;
+	std::unique_ptr<std::vector<char>> value = nullptr;
+	size_t variable_index = 0;
+
 	bool is_identifier() const noexcept(true) { return tt == tokentype_t::IDENTIFIER; }
 	bool is_reserved_keyword() const noexcept(true) { return tt > tokentype_t::IDENTIFIER; }
 	virtual bool is_operator(const punctuation_e punctuation) const noexcept;
@@ -122,36 +125,42 @@ struct expression_token_stack
 	punctuation_e opening = punctuation_e::P_UNKNOWN;
 	punctuation_e closing = punctuation_e::P_UNKNOWN;
 	ListTokenPtr::iterator location;
-	size_t num_evaluations = 0;
+	size_t num_evaluations = 0; //the number of recursive calls to evaluate expression
 
 };
 
 struct function_def
 {
-	ListTokenPtr::iterator start;
-	ListTokenPtr::iterator end;
+	ListTokenPtr::iterator start; //the start should always be the token before the start token so that it will never get invalidated
+	ListTokenPtr::iterator end; //the end should always be the actual last token (not the one after it because it can get invalidated)
 	std::vector<std::string> parameters;
 	std::string identifier;
+	std::vector<std::string> variables;
 };
 enum class code_block_e : uint8_t
 {
+	FUNCTION,
 	IF,
 	ELSE,
-	FN_CALL
-};
-struct code_block
-{
-	explicit code_block(token_t* target) : target_token(target){}
-	virtual ~code_block() = default;
-	virtual code_block_e type() const noexcept(true) = 0;
-	token_t* target_token = nullptr;
-	ListTokenPtr::iterator start;
-	ListTokenPtr::iterator end;
+	FN_CALL,
+	EXPRESSION
 };
 
+//goal: all runtime code should be made entirely from these
+struct code_block
+{
+	explicit code_block() = default;
+	virtual ~code_block() = default;
+	virtual code_block_e type() const noexcept(true) = 0;
+};
+struct function_block
+{
+	std::list<std::unique_ptr<code_block>> instructions;
+	NO_COPY_CONSTRUCTOR(function_block);
+};
 struct if_block : public code_block
 {
-	if_block(token_t*t) : code_block(t){}
+	if_block() = default;
 	~if_block() = default;
 	ListTokenPtr::iterator condition_start;
 	ListTokenPtr::iterator condition_end;
@@ -160,14 +169,14 @@ struct if_block : public code_block
 };
 struct else_block : public code_block
 {
-	else_block(token_t* t) : code_block(t) {}
+	else_block() = default;
 	~else_block() = default;
 	code_block_e type() const noexcept(true) override { return code_block_e::ELSE; }
 };
 
 struct function_call : public code_block
 {
-	function_call(token_t* t) : code_block(t) {}
+	function_call() = default;
 	~function_call() = default;
 
 	struct block {
@@ -181,9 +190,110 @@ struct function_call : public code_block
 };
 struct while_block : public code_block
 {
-	while_block(token_t* t) : code_block(t) {}
+	while_block() = default;
 	~while_block() = default;
 	ListTokenPtr::iterator condition_start;
 	ListTokenPtr::iterator condition_end;
 	code_block_e type() const noexcept(true) override { return code_block_e::ELSE; }
+};
+
+//this stuff should be elsewhere i am pretty sure!
+struct _operator {
+	OperatorPriority priority = OperatorPriority::FAILURE;
+	punctuation_e punc = punctuation_e::P_UNKNOWN;
+};
+struct validation_expression
+{
+	enum Type
+	{
+		LITERAL,
+		OTHER
+	}type;
+	struct literal
+	{
+		enum literal_type
+		{
+			NUMBER_LITERAL,
+			FLOAT_LITERAL,
+			STRING_LITERAL,
+			CHAR_LITERAL,
+			_TRUE,
+			_FALSE,
+		};
+
+		literal_type type;
+		std::vector<char> value;
+
+	};
+	struct other
+	{
+		std::list<_operator> prefix;
+		std::list<_operator> postfix;
+		std::string identifier;
+		size_t variable_index = 0; //for quick access
+	};
+
+	validation_expression(const literal& l) : value(l), type(LITERAL) {};
+	validation_expression(const other& o) : value(o), type(OTHER) {};
+
+	std::variant<literal, other> value;
+};
+
+struct singular {
+
+	enum class Type : char
+	{
+		OPERAND,
+		OPERATOR
+	}type = Type::OPERAND;
+
+	singular() = delete;
+	singular(const _operator& op) : value(op), type(Type::OPERATOR) {}
+	singular(const validation_expression& e) : value(e), type(Type::OPERAND) {}
+
+	std::variant<_operator, validation_expression> value;
+	token_t* token = nullptr;
+	ListTokenPtr::iterator location;
+};
+
+struct ast_node;
+using nodeptr = std::unique_ptr<ast_node>;
+struct ast_node
+{
+	ast_node() = default;
+
+	nodeptr left;
+	nodeptr right;
+	std::unique_ptr<singular> contents = nullptr;
+	bool is_leaf() const noexcept { return !left && !right; }
+	void print_tree(int depth = 0, bool newline = true) const {
+
+		for (int i = 0; i < depth; ++i) {
+			std::cout << "  ";
+		}
+
+		if (contents) {
+			std::cout << contents->token->string << (newline ? "\n" : "");
+		}
+
+		if (left) {
+			left->print_tree(depth - 1, false);
+		}
+		if (right) {
+			right->print_tree(depth + 1, true);
+		}
+	}
+
+	NO_COPY_CONSTRUCTOR(ast_node);
+};
+struct expression_block : public code_block
+{
+	expression_block() = default;
+	~expression_block() = default;
+
+	std::unique_ptr<ast_node> ast_tree;
+
+	//std::list<singular> expressions;
+	code_block_e type() const noexcept(true) override { return code_block_e::EXPRESSION; }
+
 };

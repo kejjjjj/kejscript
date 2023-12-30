@@ -121,6 +121,10 @@ bool script_t::read_number(token_t& token)
 		if (!parse_int(token))
 			return 0;
 
+		std::vector<char> v(sizeof(double));
+		std::from_chars(token.string.c_str(), token.string.c_str() + token.string.size(), reinterpret_cast<double&>(*v.data()));
+		token.value = std::make_unique<std::vector<char>>(v);
+
 	}
 
 	else if (std::isdigit(*script_p)) {
@@ -140,6 +144,16 @@ bool script_t::read_number(token_t& token)
 			//parse the integer literal after the .
 			if (!parse_int(token))
 				return 0;
+
+			std::vector<char> v(sizeof(double));
+			std::from_chars(token.string.c_str(), token.string.c_str() + token.string.size(), reinterpret_cast<double&>(*v.data()));
+			token.value = std::make_unique<std::vector<char>>(v);
+		}
+		//an integer
+		else {
+			std::vector<char> v(sizeof(int32_t));
+			std::from_chars(token.string.c_str(), token.string.c_str() + token.string.size(), reinterpret_cast<int32_t&>(*v.data()));
+			token.value = std::make_unique<std::vector<char>>(v);
 		}
 		//todo -> suffixes
 	}

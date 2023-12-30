@@ -57,6 +57,7 @@ struct datatype
 	template<typename Base, typename CastType>
 	static std::unique_ptr<Base> create_type_ptr(datatype& target);
 
+protected:
 	std::vector<char> value;
 
 };
@@ -112,6 +113,7 @@ struct integer_dt : public datatype
 
 	integer_dt operator+(const integer_dt& other) const {
 		auto result = this->get() + other.get();
+		std::cout << std::format("{} + {} = {}\n", this->get(), other.get(), this->get() + other.get());
 		return (decltype(*this))(result);
 	}
 	integer_dt operator-(const integer_dt& other) const {
@@ -124,6 +126,7 @@ struct integer_dt : public datatype
 	}
 	integer_dt operator<(const integer_dt& other) const {
 		bool result = this->get() < other.get();
+		std::cout << std::format("{} < {} = {}\n", this->get(), other.get(), this->get() < other.get());
 		return (decltype(*this))(result);
 	}
 };

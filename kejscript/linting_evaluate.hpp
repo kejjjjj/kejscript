@@ -21,12 +21,12 @@ struct linting_data
 	ListTokenPtr* tokens = 0;
 	void validate(ListTokenPtr::iterator it, ListTokenPtr::iterator to);
 
-	void remove_token(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to) {
-		bool is_end = (to == tokens->end());
-		auto end_diff = std::distance(tokens->begin(), to);
-		it = std::prev(tokens->erase(it, std::next(it)));
-		to = is_end ? tokens->end() : std::next(tokens->begin(),  end_diff - 1);
-	}
+	//void remove_token(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to) {
+	//	bool is_end = (to == tokens->end());
+	//	auto end_diff = std::distance(tokens->begin(), to);
+	//	it = std::prev(tokens->erase(it, std::next(it)));
+	//	to = is_end ? tokens->end() : std::next(tokens->begin(),  end_diff - 1);
+	//}
 
 	bool function_exists(const std::string& s) const {
 		return function_table.find(s) != function_table.end();
@@ -67,14 +67,7 @@ struct linting_data
 
 struct linting_expression
 {
-	std::vector<token_t*> prefix;
 	token_t* identifier = 0;
-	std::vector<token_t*> postfix;
-	bool op = false;
-
-	bool empty() const noexcept {
-		return prefix.empty() && identifier == nullptr;
-	}
 };
 
 struct l_expression_context
@@ -82,12 +75,10 @@ struct l_expression_context
 	l_expression_context(const expression_token_stack& _stack) : stack(_stack) {}
 
 	linting_expression expression;
-	std::vector<linting_expression> expressions;
+	//std::vector<linting_expression> expressions;
 	expression_token_stack stack;
 	std::unique_ptr<undefined_variable> undefined_var;
-	l_expression_context(const l_expression_context&) = delete;
-	l_expression_context& operator=(const l_expression_context&) = delete;
-
+	NO_COPY_CONSTRUCTOR(l_expression_context);
 };
 
 struct l_expression_results

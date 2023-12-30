@@ -3,7 +3,7 @@
 #include "linting_scope.hpp"
 #include "linting_exceptions.hpp"
 #include "linting_evaluate.hpp"
-linting_scope* linting_create_scope_without_range(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* block)
+linting_scope* linting_create_scope_without_range(linting_scope* block)
 {
 	LOG("creating a scope\n");
 
@@ -13,9 +13,6 @@ linting_scope* linting_create_scope_without_range(ListTokenPtr::iterator& it, Li
 		scope->is_inside_of_a_function = true;
 
 	scope->lower_scope = block;
-
-	if (it->get()->is_operator(P_CURLYBRACKET_OPEN))
-		linting_data::getInstance().remove_token(it, end);
 
 	return scope;
 }
@@ -38,12 +35,10 @@ linting_scope* linting_delete_scope([[maybe_unused]] ListTokenPtr::iterator& it,
 		linting_data::getInstance().function_declare(std::move(f));
 		f = function_def();
 	}
-	
-	if (it->get()->is_operator(P_CURLYBRACKET_CLOSE))
-		linting_data::getInstance().remove_token(it, end);
+
 
 	if (block->block) {
-		block->block->end = it;
+		block->block->end = (it);
 
 		if (VECTOR_PEEK(it, 1, end) == false)
 			throw linting_error(it->get(), "weird eof");

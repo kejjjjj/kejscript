@@ -2,7 +2,7 @@
 #include "runtime_declaration.hpp"
 #include "runtime.hpp"
 
-void transfer_code_execution(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, const ListTokenPtr::iterator& return_loc, const function_def& func)
+void transfer_code_execution(const ListTokenPtr::iterator& return_loc, const function_def& func)
 {
 	LOG("calling '" << func.identifier << "'\n");
 
@@ -14,10 +14,9 @@ void transfer_code_execution(ListTokenPtr::iterator& it, ListTokenPtr::iterator&
 	for (const auto& decl : func.parameters)
 		rt.stack->declare_variable(decl);
 
-	it = func.start;
-	end = func.end;
+	for (const auto& decl : func.variables)
+		rt.stack->declare_variable(decl);
 
-	LOG("code execution transferred to: [" << it->get()->line << ", " << it->get()->column << "]\n");
 
 
 }

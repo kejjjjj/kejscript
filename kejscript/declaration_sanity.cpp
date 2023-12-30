@@ -7,14 +7,18 @@ void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::itera
 {
 	auto scope = linting_data::getInstance().active_scope;
 
-	//if (scope->is_function_scope() == false)
-	//	throw linting_error(it->get(), "variables can only be declared within function scopes");
+	if (scope->is_function_scope() == false)
+		throw linting_error(it->get(), "variables can only be declared within function scopes");
 
 	//check if the next token is valid
 	if (VECTOR_PEEK(it, 1, end) == false) { 
 		throw linting_error(it->get(), "expected an identifier");
 	}
-	std::advance(it, 1); // skip the init keyword
+	//std::advance(it, 1); // skip the def keyword
+
+	auto& data = linting_data::getInstance();
+
+	std::advance(it, 1);
 
 	if (it->get()->is_identifier() == false)
 		throw linting_error(it->get(), "expected an identifier");
@@ -23,6 +27,9 @@ void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::itera
 		throw linting_error(it->get(), "the variable '%s' is already defined");
 
 	LOG("declaring: '" << it->get()->string << "'\n");
+
+	data.current_function.variables.push_back(it->get()->string);
+	it->get()->variable_index = data.current_function.variables.size() - 1;
 
 	//check if the next token is valid
 	if (VECTOR_PEEK(it, 1, end) == false) {
@@ -44,8 +51,6 @@ void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::itera
 			throw linting_error(it->get(), "expected a '=' or ';'");
 	}
 	
-	std::advance(it, 2); //skip the identifier and the = punctuation
-
 	it = evaluate_expression_sanity(it, end).it; //and now parse the expression 
 
 }
