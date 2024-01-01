@@ -1,7 +1,6 @@
 #pragma once
 
 #include "pch.hpp"
-
 #include "variable.hpp"
 
 struct operand
@@ -11,7 +10,7 @@ struct operand
 		LVALUE,
 		RVALUE
 	}type = Type::LVALUE;
-
+	operand() = default;
 	operand(singular& expr);
 	operand(variable* v) : value(v), type(Type::LVALUE) {}
 	operand(std::unique_ptr<datatype>&& expr) : value(std::move(expr)), type(Type::RVALUE) {}
@@ -28,6 +27,8 @@ struct operand
 
 	datatype* lvalue_to_rvalue();
 	datatype* get_value();
+	std::unique_ptr<datatype>& get_value_move();
+
 	std::vector<token_t*> prefix;
 	std::vector<token_t*> postfix;
 	token_t* _operand = nullptr;

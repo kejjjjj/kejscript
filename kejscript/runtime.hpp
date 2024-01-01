@@ -19,8 +19,6 @@ struct runtime
 	runtime() = default;
 	static void initialize(function_table_t& table) { function_table = std::move(table); };
 	static void execute();
-
-	static std::unique_ptr<function_stack> stack; //this should not be a GLOBAL 
 private:
 	
 	static function_table_t function_table;

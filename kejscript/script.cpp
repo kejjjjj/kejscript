@@ -295,12 +295,12 @@ void script_t::execute()
 	std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
 	std::chrono::duration<float> difference = now - old;
 
-	std::cout << ("\n---- stack ----\n");
+	//std::cout << ("\n---- stack ----\n");
 
-	for (auto& v : runtime::stack->variables)
-		std::cout << (std::format("{}<{}> = {}\n", v->identifier, v->value->type_str(), v->value->value_str()));
+	//for (auto& v : runtime::stack->variables)
+	//	std::cout << (std::format("{}<{}> = {}\n", v->identifier, v->value->type_str(), v->value->value_str()));
 
-	std::cout << ("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+	//std::cout << ("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 
 	printf("\ntime taken: %.6f\n", difference.count());
 

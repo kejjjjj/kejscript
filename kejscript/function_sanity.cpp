@@ -59,7 +59,10 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 		throw linting_error("expected a '}' but encountered EOF");
 	}
 
-	data.current_function = std::make_unique<function_block>(funcdef);
+	auto func = std::make_unique<function_block>(funcdef);
+	data.function_declare(func);
+	data.current_function = (--data.function_table.end())->second.get();
+	//std::cout << "loc: " << data.current_function << '\n';
 
 }
 
@@ -82,7 +85,7 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 	std::advance(it, 1);
 
 	parameters.push_back(it->get()->string);
-	def.variables.push_back(it->get()->string);
+	//def.variables.push_back(it->get()->string);
 
 	if (!scope->declare_variable(parameters.back())) {
 		throw linting_error(it->get(), "this parameter has already been declared");
@@ -106,25 +109,27 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 void evaluate_return_sanity(ListTokenPtr::iterator& it, [[maybe_unused]]ListTokenPtr::iterator& end)
 {
 	//in case I forget :blush:
-	throw linting_error(it->get(), "return: fix me first!");
+	auto& c_data = linting_data::getInstance();
 
-	//auto& c_data = linting_data::getInstance();
+	if (c_data.active_scope->is_function_scope() == false)
+		throw linting_error(it->get(), "the 'return' keyword is only allowed within functions");
 
-	//if (c_data.active_scope->is_inside_of_a_function == false)
-	//	throw linting_error(it->get(), "the 'return' keyword is only allowed within function scopes");
+	//check if the next token is valid
+	if (VECTOR_PEEK(it, 1, end) == false) {
+		throw linting_error("expected an expression before EOF");
+	}
 
-	////check if the next token is valid
-	//if (VECTOR_PEEK(it, 1, end) == false) {
-	//	throw linting_error("expected an expression before EOF");
-	//}
+	//skip the return keyword
+	std::advance(it, 1);
 
-	////skip the return keyword
-	//std::advance(it, 1);
+	auto ret = std::make_unique<return_statement>();
 
-	//if (it->get()->is_operator(punctuation_e::P_SEMICOLON) == false) { //no point in parsing the expression after if there is no expression
-	//	//it = evaluate_expression_sanity(it, end).it;
-	//}
-
-	//LOG("done!\n");
+	if (it->get()->is_operator(punctuation_e::P_SEMICOLON)) { //no point in parsing the expression after if there is no expression
+		move_block_to_current_context(ret);
+		return;
+	}
+	ret->expression = std::make_unique<expression_block>();
+	it = evaluate_expression_sanity(it, end, ret->expression).it;
+	move_block_to_current_context(ret);
 	
 }

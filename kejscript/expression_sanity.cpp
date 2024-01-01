@@ -3,15 +3,16 @@
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
 
-
+using singularlist = std::list<std::unique_ptr<singular>>;
 std::optional<_operator> peek_unary_operator(ListTokenPtr::iterator & it, ListTokenPtr::iterator & end, l_expression_context & context);
 bool peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& context, std::unique_ptr<expression_block>& block);
-std::optional<_operator> peek_postfix_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& context);
-std::unique_ptr<ast_node> generate_ast_tree(std::list<singular>& expressions);
+std::optional<_operator> peek_postfix_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& context, singular* s);
+std::unique_ptr<ast_node> generate_ast_tree(singularlist& expressions);
 
 
-void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& context, std::unique_ptr<expression_block>& block, std::list<singular>& ex)
+void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& context, std::unique_ptr<expression_block>& block, singularlist& ex)
 {
+	auto s = std::make_unique<singular>();
 
 	std::list<_operator> prefix, postfix;
 	const auto& current_function = linting_data::getInstance().current_function;
@@ -21,18 +22,16 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 	}
 
 	ListTokenPtr::iterator identifier_it = it;
-	if (peek_identifier(it, end, context, block) == false)
-		throw linting_error(it->get(), "expected an identifier instead of '%s'", it->get()->string.c_str());
-
-	while (auto v = peek_postfix_operator(it, end, context)) {
-		postfix.push_back(v.value());
-	}
-
-	if (context.stack.time_to_exit() && identifier_it->get()->is_operator(P_PAR_OPEN)) //if identifier == '('
-		return;
 
 	if (identifier_it->get()->is_punctuation()) {
 		throw linting_error(identifier_it->get(), "expected an identifier instead of '%s'", identifier_it->get()->string.c_str());
+	}
+
+	if (peek_identifier(it, end, context, block) == false)
+		throw linting_error(it->get(), "expected an identifier instead of '%s'", it->get()->string.c_str());
+
+	while (auto v = peek_postfix_operator(it, end, context, s.get())) {
+		postfix.push_back(v.value());
 	}
 
 	// a literal token
@@ -53,9 +52,9 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 			literal.type = validation_expression::literal::_FALSE;
 			break;
 		}
-		singular expression(literal);
-		expression.token = identifier_it->get();
-		ex.push_back(std::move(expression));
+		s->make_operand(literal);
+		s->token = identifier_it->get();
+		ex.push_back(std::move(s));
 	}
 	else {
 		validation_expression::other other{ 
@@ -63,14 +62,17 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 			postfix, 
 			identifier_it->get()->string, 
 			current_function->get_index_for_variable(identifier_it->get()->string)};
-		singular expression(other);
-		expression.token = identifier_it->get();
-		ex.push_back(std::move(expression));
+
+
+		s->make_operand(other);
+		s->token = identifier_it->get();
+		s->owner = linting_data::getInstance().current_function;
+		ex.push_back(std::move(s));
 	}
 }
 
 #include "operators.hpp"
-void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& ctx, std::list<singular>& ex)
+void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& ctx, singularlist& ex)
 {
 	if (it == end || it->get()->is_operator(punctuation_e::P_SEMICOLON))
 		return;
@@ -94,10 +96,8 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 	}
 
 	auto func = evaluation_functions::find_function(op->punc);
-	singular s({op->priority, op->punc, reinterpret_cast<void*>(func) });
-
-
-	s.token = it->get();
+	auto s = std::make_unique<singular>(_operator{op->priority, op->punc, reinterpret_cast<void*>(func) });
+	s->token = it->get();
 	ex.push_back(std::move(s));
 
 	std::advance(it, 1);
@@ -114,19 +114,12 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 		throw linting_error(it->get(), "an empty expression is not allowed");
 
 	l_expression_context ctx(stack);
-	std::list<singular> expressions;
+	singularlist expressions;
 
 
 	while (it != end) {
 
 		tokenize_operand(it, end, ctx, block, expressions);
-
-		if (ctx.undefined_var) {
-			if (ctx.undefined_var->function == false) //undefined local variables will always error because they cannot be globals
-				throw linting_error(ctx.undefined_var->location->get(), "'%s' is undefined", ctx.undefined_var->identifier.c_str());
-			else //undefined variables will be pushed to a list that will be checked after validating the entire file
-				linting_data::getInstance().undefined_variables.push_back(*ctx.undefined_var.get());
-		}
 
 		//the comma should only exit if we are not using the stack
 		if (it->get()->is_operator(punctuation_e::P_COMMA)) {
@@ -171,7 +164,7 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 		throw linting_error(it->get(), "an empty expression is not allowed");
 	}
 
-	if (expressions.back().type == singular::Type::OPERATOR) {
+	if (expressions.back()->type == singular::Type::OPERATOR) {
 		throw linting_error(it->get(), "an expression must not end at an operator");
 	}
 
@@ -252,14 +245,11 @@ bool peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_
 
 		//make sure it exists in the stack before it's used
 		auto scope = linting_data::getInstance().active_scope;
+		auto& data = linting_data::getInstance();
+		if (scope->variable_exists(token->string) == false && !data.function_exists(token->string)) {
 
-		if (scope->variable_exists(token->string) == false) {
-
-			context.undefined_var = std::move(std::make_unique<undefined_variable>(
-				undefined_variable{ .identifier = token->string, .location = it, .num_args = 0 }));
 			throw linting_error(token, "the identifier '%s' is undefined", token->string.c_str());
 		}
-
 
 	}
 
@@ -270,13 +260,13 @@ bool peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_
 	std::advance(it, 1);
 	return true;
 }
-std::optional<_operator> peek_postfix_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& context)
+
+std::optional<_operator> peek_postfix_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_expression_context& context, singular* s)
 {
 	if (it == end)
 		return std::nullopt;
 
 	context.stack.assign_to_stack_if_possible(it);
-
 	if (context.stack.time_to_exit())
 		return std::nullopt;
 
@@ -294,64 +284,64 @@ std::optional<_operator> peek_postfix_operator(ListTokenPtr::iterator& it, ListT
 		it = evaluate_subscript_sanity(it, end, context);
 	}
 	else if (ptr->punc == P_PAR_OPEN) {
-		it = evaluate_function_call_sanity(it, end, context);
+		it = evaluate_function_call_sanity(it, end, context, s, std::prev(it)->get()->string);
 	}
 	else
 		it = linting_data::getInstance().tokens->erase(it);
 
 	return v;
 }
-std::list<singular>::iterator get_lowest_precedence(std::list<singular>::iterator& itr1, const std::list<singular>::iterator& end);
+singularlist::iterator get_lowest_precedence(singularlist::iterator& itr1, const singularlist::iterator& end);
 
-void generate_ast_tree_recursive(const std::unique_ptr<ast_node>& node, std::list<singular>& expressions)
+void generate_ast_tree_recursive(const std::unique_ptr<ast_node>& node, singularlist& expressions)
 {
-	std::list<singular>::iterator itr1;
+	singularlist::iterator itr1;
 
 	if (expressions.size() == 1) {
-		node->contents = std::make_unique<singular>(expressions.front());
+		node->contents = std::move(expressions.front());
 		return;
 	}
 
 	itr1 = ++expressions.begin();
 	itr1 = get_lowest_precedence(itr1, expressions.end());
 
-	const auto& punctuation = *itr1;
+	auto& punctuation = *itr1;
 	const auto& left_substr = itr1;
 	const auto& right_substr = std::next(itr1);
 
 	node->left = std::make_unique<ast_node>();
 	node->right = std::make_unique<ast_node>();
-	node->contents = std::make_unique<singular>(punctuation);
+	node->contents = std::move(punctuation);
 
 	//sort the left tree (everything to the left of the operator)
-	std::list<singular> left_branch = std::list<singular>(expressions.begin(), left_substr);
+	singularlist left_branch = singularlist(std::make_move_iterator(expressions.begin()), std::make_move_iterator(left_substr));
 	generate_ast_tree_recursive(node->left, left_branch);
 
 	//sort the right tree (everything to the right of the operator)
-	std::list<singular> right_branch = std::list<singular>(right_substr, expressions.end());
+	singularlist right_branch = singularlist(std::make_move_iterator(right_substr), std::make_move_iterator(expressions.end()));
 	generate_ast_tree_recursive(node->right, right_branch);
 
 }
 
-std::unique_ptr<ast_node> generate_ast_tree(std::list<singular>& expressions)
+std::unique_ptr<ast_node> generate_ast_tree(singularlist& expressions)
 {
 	nodeptr root = std::make_unique<ast_node>();
 	generate_ast_tree_recursive(root, expressions);
 	return std::move(root);
 
 }
-std::list<singular>::iterator get_lowest_precedence(std::list<singular>::iterator& itr1, const std::list<singular>::iterator& end)
+singularlist::iterator get_lowest_precedence(singularlist::iterator& itr1, const singularlist::iterator& end)
 {
 	OperatorPriority priority{};
-	OperatorPriority lowest_precedence = std::get<_operator>(itr1->value).priority;
+	OperatorPriority lowest_precedence = std::get<_operator>((*itr1)->value).priority;
 
-	std::list<singular>::iterator lowest_precedence_i = itr1;
+	singularlist::iterator lowest_precedence_i = itr1;
 
 	if (itr1 == end)
 		return lowest_precedence_i;
 
 	do {
-		const _operator& op = std::get<_operator>(itr1->value);
+		const _operator& op = std::get<_operator>((*itr1)->value);
 		priority = op.priority;
 		
 		if (priority < lowest_precedence) {

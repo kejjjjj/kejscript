@@ -1,3 +1,5 @@
+#pragma once
+
 #include "pch.hpp"
 
 
@@ -140,9 +142,10 @@ enum class code_block_e : uint8_t
 	CONDITIONAL,
 	WHILE,
 	FN_CALL,
-	EXPRESSION
+	EXPRESSION,
+	RETURN
 };
-
+struct function_block;
 struct code_block
 {
 	explicit code_block() = default;
@@ -159,7 +162,7 @@ struct code_block
 	}
 
 	virtual code_block_e type() const noexcept(true) = 0;
-
+	function_block* owner = 0; //the function that owns this code block
 	std::list<std::unique_ptr<code_block>> contents;
 };
 struct ast_node;
@@ -169,7 +172,6 @@ struct function_block
 
 	template<typename t>
 	void add_instruction(std::unique_ptr<t>& instruction) {
-
 		instructions.push_back(std::move(instruction));
 		blocks.push_back(instructions.back().get());
 	}
@@ -185,9 +187,11 @@ struct function_block
 		assert("get_index_for_variable(): didn't find variable.. how?");
 		return 0;
 	}
-
+	function_block* caller = 0; //the function that called this function
 	std::list<std::unique_ptr<code_block>> instructions;
 	std::vector<code_block*> blocks; //keeps track of the current codeblock (points to the instructions list)
+	struct function_stack* stack = 0;
+	struct operand* return_value = 0;
 	size_t nest_depth = 0;
 	function_def def;
 	NO_COPY_CONSTRUCTOR(function_block);
@@ -219,7 +223,7 @@ struct function_call : public code_block
 {
 	function_call() = default;
 	~function_call() = default;
-
+	function_block* target = 0;
 	std::unique_ptr<expression_block> arguments;
 	void execute() override { }; //implement!
 
@@ -233,7 +237,15 @@ struct while_block : public code_block
 	void execute() override;
 	code_block_e type() const noexcept(true) override { return code_block_e::WHILE; }
 };
+struct return_statement : public code_block
+{
+	return_statement() = default;
+	~return_statement() = default;
+	void execute() override;
+	std::unique_ptr<expression_block> expression; //this can be a nullptr if returning void
+	code_block_e type() const noexcept(true) override { return code_block_e::RETURN; }
 
+};
 //this stuff should be elsewhere i am pretty sure!
 struct _operator {
 	OperatorPriority priority = OperatorPriority::FAILURE;
@@ -259,7 +271,7 @@ struct validation_expression
 			_FALSE,
 		};
 
-		literal_type type;
+		literal_type type = NUMBER_LITERAL;
 		std::vector<char> value;
 
 	};
@@ -269,6 +281,7 @@ struct validation_expression
 		std::list<_operator> postfix;
 		std::string identifier;
 		size_t variable_index = 0; //for quick access
+
 	};
 
 	validation_expression(const literal& l) : value(l), type(LITERAL) {};
@@ -303,12 +316,28 @@ struct singular {
 		OPERATOR
 	}type = Type::OPERAND;
 
-	singular() = delete;
+	singular() = default;
 	singular(const _operator& op) : value(op), type(Type::OPERATOR) {}
 	singular(const validation_expression& e) : value(e), type(Type::OPERAND) {}
 
+	void make_operator(const _operator& op)
+	{
+		value = op;
+		type = Type::OPERATOR;
+	}
+	void make_operand(const validation_expression& e)
+	{
+		value = e;
+		type = Type::OPERAND;
+	}
+
+
 	std::variant<_operator, validation_expression> value;
 	token_t* token = nullptr;
+	function_block* owner = 0; // the function that owns this operand
+	std::unique_ptr<function_call> callable;
+
+	NO_COPY_CONSTRUCTOR(singular);
 	//ListTokenPtr::iterator location;
 };
 

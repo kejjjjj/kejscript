@@ -33,9 +33,9 @@ linting_scope* linting_delete_scope([[maybe_unused]] ListTokenPtr::iterator& it,
 		--f->nest_depth;
 
 	//a function ends here so push it to the table
-	if (block->is_inside_of_a_function && block->lower_scope->is_inside_of_a_function == false) {
-		linting_data::getInstance().function_declare(f); //note: std::move was called on f so it is no longer valid
-	}
+	//if (block->is_inside_of_a_function && block->lower_scope->is_inside_of_a_function == false) {
+	//	linting_data::getInstance().function_declare(f); //note: std::move was called on f so it is no longer valid
+	//}
 
 	delete block;
 	block = nullptr;

@@ -1,5 +1,6 @@
 #pragma once
 
 #include "pch.hpp"
+#include "operand.hpp"
 
-void call_function(std::unique_ptr<function_block>& target);
+std::unique_ptr<operand> call_function(function_block* caller, function_block* callee, expression_block* args);

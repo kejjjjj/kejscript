@@ -84,9 +84,6 @@
     <ClCompile Include="datatype.cpp">
       <Filter>Source Files\runtime</Filter>
     </ClCompile>
-    <ClCompile Include="variable.cpp">
-      <Filter>Source Files\runtime</Filter>
-    </ClCompile>
     <ClCompile Include="function.cpp">
       <Filter>Source Files\runtime</Filter>
     </ClCompile>
@@ -97,6 +94,9 @@
       <Filter>Source Files\linting\sanity_checks</Filter>
     </ClCompile>
     <ClCompile Include="while_statement.cpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="return.cpp">
       <Filter>Source Files\runtime</Filter>
     </ClCompile>
   </ItemGroup>
@@ -147,12 +147,6 @@
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
     <ClInclude Include="function.hpp">
-      <Filter>Source Files\runtime</Filter>
-    </ClInclude>
-    <ClInclude Include="if_statement.hpp">
-      <Filter>Source Files\runtime</Filter>
-    </ClInclude>
-    <ClInclude Include="while_statement.hpp">
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,4 +1,3 @@
-#include "if_statement.hpp"
 #include "runtime_expression.hpp"
 #include "runtime_exception.hpp"
 #include "runtime.hpp"
@@ -13,7 +12,7 @@ void conditional_block::execute()
 		return eval_block();
 	}
 		
-	const auto value = evaluate_expression(condition->ast_tree);
+	const auto value = evaluate_expression(owner, condition->ast_tree);
 	//const auto result = datatype::create_type<bool_dt, bool>(*value->get_value());
 	//const bool expression_condition = result.get();
 	bool expression_condition = *reinterpret_cast<bool*>(value->get_value()->value.data());

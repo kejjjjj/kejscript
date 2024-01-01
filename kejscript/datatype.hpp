@@ -53,7 +53,8 @@ struct datatype
 
 	template<typename Base, typename CastType>
 	static constexpr Base create_type(const datatype& target);
-
+	template<typename Base, typename CastType>
+	static constexpr Base create_type_copy(Base target);
 	template<typename Base, typename CastType>
 	static constexpr std::unique_ptr<Base> create_type_ptr(datatype& target);
 
@@ -179,7 +180,20 @@ inline constexpr Base datatype::create_type(const datatype& target)
 
 	throw std::logic_error("yea");
 }
+template<typename Base, typename CastType>
+inline constexpr Base datatype::create_type_copy(Base target)
+{
+	switch (target.type()) {
+	case datatype_e::bool_t:
+		return static_cast<CastType>(datatype::cast_normal<bool_dt>(&target).get());
+	case datatype_e::int_t:
+		return static_cast<CastType>(datatype::cast_normal<integer_dt>(&target).get());
+	case datatype_e::double_t:
+		return static_cast<CastType>(datatype::cast_normal<double_dt>(&target).get());
+	}
 
+	throw std::logic_error("yea");
+}
 template<typename Base, typename CastType>
 inline constexpr std::unique_ptr<Base> datatype::create_type_ptr(datatype& target)
 {

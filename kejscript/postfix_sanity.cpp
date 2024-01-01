@@ -32,7 +32,12 @@
 	//return it;
 
 }
-[[nodiscard]] ListTokenPtr::iterator evaluate_function_call_sanity(ListTokenPtr::iterator it, ListTokenPtr::iterator& end, [[maybe_unused]] l_expression_context& context)
+
+[[nodiscard]] ListTokenPtr::iterator evaluate_function_call_sanity(
+	ListTokenPtr::iterator it, 
+	ListTokenPtr::iterator& end, 
+	[[maybe_unused]] l_expression_context& context, 
+	singular* s, const std::string& target_func)
 {
 	//check the next token
 	if (VECTOR_PEEK(it, 1, end) == false) {
@@ -41,10 +46,11 @@
 
 	LOG("calling evaluate_function_call_sanity()\n");
 
-	if (context.undefined_var)
-		context.undefined_var->function = true;
-
 	std::advance(it, 1);
+
+	s->callable = std::make_unique<function_call>();
+	s->callable->target = linting_data::getInstance().get_function(target_func)->second.get();
+	auto& call_block = s->callable;
 
 	//parse the arguments
 	if (it->get()->is_operator(P_PAR_CLOSE) == true) { // a function call with 0 arguments, return immediately 
@@ -54,15 +60,14 @@
 	expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
 	LOG("jumping from " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
 
-	auto call_block = std::make_unique<function_call>();
+
 	call_block->arguments = std::make_unique<expression_block>();
 	l_expression_results results = evaluate_expression_sanity(it, end, call_block->arguments, stack);
 
-	size_t num_args = results.num_evaluations;
+	//size_t num_args = results.num_evaluations;
 	it = results.it;
 
-	if (context.undefined_var)
-		context.undefined_var->num_args = num_args;
+	
 
 	//LOG("calling '" << context.expression.identifier->string << "' with " << num_args << " arguments!\n");
 

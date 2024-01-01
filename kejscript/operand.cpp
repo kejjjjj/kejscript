@@ -12,9 +12,10 @@ operand::operand(singular& expr) : value(), _operand(expr.token)
 	auto& oper = std::get<validation_expression>(expr.value);
 
 	if (oper.type == validation_expression::Type::OTHER) {
-		const auto& table = runtime::stack->variables;
+		const auto& table = expr.owner->stack->variables;
 
 		variable* r = table[ std::get<validation_expression::other>(oper.value).variable_index ].get();
+		
 		value = r;
 		type = Type::LVALUE;
 
@@ -138,4 +139,9 @@ void operand::implicit_cast(operand& other, datatype* l, datatype* r)
 datatype* operand::get_value()
 {
 	return type == Type::RVALUE ? std::get<rvalue>(value).get() : std::get<variable*>(value)->value.get();
+}
+std::unique_ptr<datatype>& operand::get_value_move()
+{
+	return type == Type::RVALUE ? std::get<rvalue>(value) : std::get<variable*>(value)->value;
+
 }
