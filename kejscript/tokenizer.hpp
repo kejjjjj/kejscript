@@ -46,15 +46,12 @@ struct token_t
 	size_t line = 0;
 	size_t column = 0;
 	std::unique_ptr<std::vector<char>> value = nullptr;
-	size_t variable_index = 0;
 
 	bool is_identifier() const noexcept(true) { return tt == tokentype_t::IDENTIFIER; }
 	bool is_reserved_keyword() const noexcept(true) { return tt > tokentype_t::IDENTIFIER; }
 	virtual bool is_operator(const punctuation_e punctuation) const noexcept;
 
 	virtual bool is_punctuation() const noexcept(true) { return false; }
-	std::unique_ptr<code_block> block = nullptr;
-
 	token_t& operator=(const token_t&) = delete;
 	token_t(const token_t&) = delete;
 
@@ -131,47 +128,91 @@ struct expression_token_stack
 
 struct function_def
 {
-	ListTokenPtr::iterator start; //the start should always be the token before the start token so that it will never get invalidated
-	ListTokenPtr::iterator end; //the end should always be the actual last token (not the one after it because it can get invalidated)
 	std::vector<std::string> parameters;
 	std::string identifier;
 	std::vector<std::string> variables;
+
+	
 };
 enum class code_block_e : uint8_t
 {
 	FUNCTION,
-	IF,
-	ELSE,
+	CONDITIONAL,
+	WHILE,
 	FN_CALL,
 	EXPRESSION
 };
 
-//goal: all runtime code should be made entirely from these
 struct code_block
 {
 	explicit code_block() = default;
 	virtual ~code_block() = default;
+	//std::list<std::unique_ptr<code_block>> contents; maybe one day
+
+	virtual void execute() = 0;
+
+	void eval_block() {
+
+		for (auto& instruction : contents)
+			instruction->execute();
+
+	}
+
 	virtual code_block_e type() const noexcept(true) = 0;
+
+	std::list<std::unique_ptr<code_block>> contents;
 };
+struct ast_node;
 struct function_block
 {
+	function_block(const function_def& d) : def(d){}
+
+	template<typename t>
+	void add_instruction(std::unique_ptr<t>& instruction) {
+
+		instructions.push_back(std::move(instruction));
+		blocks.push_back(instructions.back().get());
+	}
+	size_t get_index_for_variable(const std::string_view& target) {
+		size_t i = 0;
+		
+		for (auto& v : def.variables) {
+			if (!v.compare(target)) {
+				return i;
+			}
+			++i;
+		}
+		assert("get_index_for_variable(): didn't find variable.. how?");
+		return 0;
+	}
+
 	std::list<std::unique_ptr<code_block>> instructions;
+	std::vector<code_block*> blocks; //keeps track of the current codeblock (points to the instructions list)
+	size_t nest_depth = 0;
+	function_def def;
 	NO_COPY_CONSTRUCTOR(function_block);
 };
-struct if_block : public code_block
+struct expression_block : public code_block
 {
-	if_block() = default;
-	~if_block() = default;
-	ListTokenPtr::iterator condition_start;
-	ListTokenPtr::iterator condition_end;
-	code_block_e type() const noexcept(true) override { return code_block_e::IF; }
-	std::unique_ptr<code_block> next; //jump location if the condition is not true
+	expression_block() = default;
+	~expression_block() = default;
+
+	void execute() override;
+
+	std::unique_ptr<ast_node> ast_tree;
+	std::unique_ptr<expression_block> next; //indicates that there was more than one evaluation (function call arguments)
+	code_block_e type() const noexcept(true) override { return code_block_e::EXPRESSION; }
+
 };
-struct else_block : public code_block
+struct conditional_block : public code_block
 {
-	else_block() = default;
-	~else_block() = default;
-	code_block_e type() const noexcept(true) override { return code_block_e::ELSE; }
+	conditional_block() = default;
+	~conditional_block() = default;
+	std::unique_ptr<expression_block> condition;
+	void execute() override;
+
+	code_block_e type() const noexcept(true) override { return code_block_e::CONDITIONAL; }
+	std::unique_ptr<conditional_block> next; //jump location if the condition is not true
 };
 
 struct function_call : public code_block
@@ -179,12 +220,8 @@ struct function_call : public code_block
 	function_call() = default;
 	~function_call() = default;
 
-	struct block {
-		ListTokenPtr::iterator start;
-		ListTokenPtr::iterator end;
-	};
-	std::list<block> arguments;
-	function_def* target = nullptr;
+	std::unique_ptr<expression_block> arguments;
+	void execute() override { }; //implement!
 
 	code_block_e type() const noexcept(true) override { return code_block_e::FN_CALL; }
 };
@@ -192,15 +229,16 @@ struct while_block : public code_block
 {
 	while_block() = default;
 	~while_block() = default;
-	ListTokenPtr::iterator condition_start;
-	ListTokenPtr::iterator condition_end;
-	code_block_e type() const noexcept(true) override { return code_block_e::ELSE; }
+	std::unique_ptr<expression_block> condition; //I don't want to initialize it in the constructor just to be a bit more explicit
+	void execute() override;
+	code_block_e type() const noexcept(true) override { return code_block_e::WHILE; }
 };
 
 //this stuff should be elsewhere i am pretty sure!
 struct _operator {
 	OperatorPriority priority = OperatorPriority::FAILURE;
 	punctuation_e punc = punctuation_e::P_UNKNOWN;
+	void* eval = 0;
 };
 struct validation_expression
 {
@@ -239,6 +277,24 @@ struct validation_expression
 	std::variant<literal, other> value;
 };
 
+template<typename T>
+constexpr validation_expression::literal token_2_literal()
+{
+	switch (T) {
+	case tokentype_t::NUMBER_LITERAL:
+		return validation_expression::literal::NUMBER_LITERAL;
+	case tokentype_t::FLOAT_LITERAL:
+		return validation_expression::literal::FLOAT_LITERAL;
+	case tokentype_t::_TRUE:
+		return validation_expression::literal::_TRUE;
+	case tokentype_t::_FALSE:
+		return validation_expression::literal::_FALSE;
+		
+	}
+
+	return validation_expression::literal::CHAR_LITERAL;
+
+}
 struct singular {
 
 	enum class Type : char
@@ -253,10 +309,9 @@ struct singular {
 
 	std::variant<_operator, validation_expression> value;
 	token_t* token = nullptr;
-	ListTokenPtr::iterator location;
+	//ListTokenPtr::iterator location;
 };
 
-struct ast_node;
 using nodeptr = std::unique_ptr<ast_node>;
 struct ast_node
 {
@@ -285,15 +340,4 @@ struct ast_node
 	}
 
 	NO_COPY_CONSTRUCTOR(ast_node);
-};
-struct expression_block : public code_block
-{
-	expression_block() = default;
-	~expression_block() = default;
-
-	std::unique_ptr<ast_node> ast_tree;
-
-	//std::list<singular> expressions;
-	code_block_e type() const noexcept(true) override { return code_block_e::EXPRESSION; }
-
 };

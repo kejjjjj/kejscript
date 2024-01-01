@@ -4,7 +4,7 @@
 #include "linting_scope.hpp"
 
 
-[[maybe_unused]] std::unique_ptr<code_block>& evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
+void evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, const std::unique_ptr<conditional_block>& chain)
 {
 	auto& data = linting_data::getInstance();
 
@@ -18,26 +18,32 @@
 		throw linting_error(std::next(it)->get(), "expected a '('");
 	}
 
-	data.active_scope = linting_create_scope_without_range(it, data.active_scope);
-	data.active_scope->scope_type = tokentype_t::IF;
-	auto target_token = it->get();
-
-	auto block = std::make_unique<if_block>(it->get()); //create data for runtime
-
 	std::advance(it, 2); //skip the if keyword and the '('
 
-	block->condition_start = it;
+	if (it == end)
+		throw linting_error(std::prev(it)->get(), "why does the file end here");
 
-	expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
-	it = evaluate_expression_sanity(it, end, stack).it;
+
+	if (chain == nullptr) {
+		auto block = std::make_unique<conditional_block>(); //create data for runtime
+		block->condition = std::make_unique<expression_block>();
+		auto if_block = move_block_to_current_context(block);
+
+		expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
+		it = evaluate_expression_sanity(it, end, if_block->condition, stack).it;
+	}
+	else { //this means that this is an else if statement and chain points to the next block
+		chain->condition = std::make_unique<expression_block>();
+		expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
+		it = evaluate_expression_sanity(it, end, chain->condition, stack).it;
+	}
+
+	data.active_scope = linting_create_scope_without_range(data.active_scope);
+	data.active_scope->scope_type = scope_type_e::IF;
 
 	if (it->get()->is_operator(P_PAR_CLOSE) == false) {
 		throw linting_error(it->get(), "expected a '%s'", punctuations[P_PAR_CLOSE].identifier.c_str());
 	}
-
-	dynamic_cast<punctuation_token_t*>(it->get())->punc = P_SEMICOLON;
-	block->condition_end = it;
-	
 
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '{' instead of EOF");
@@ -53,17 +59,8 @@
 		throw linting_error("didn't expect the file to end here");
 	}
 
-	block->start = it;
+	data.active_scope->emit_to_lower_scope(scope_type_e::IF);
 
-	if (block->start->get()->is_operator(P_CURLYBRACKET_CLOSE)) {
-		throw linting_error(block->start->get(), "empty block");
-	}
-
-	data.active_scope->emit_to_lower_scope(tokentype_t::IF);
-
-	target_token->block = std::move(block);
-	data.active_scope->block = target_token->block.get();
-	return target_token->block;
 }
 void evaluate_else_sanity([[maybe_unused]]ListTokenPtr::iterator& it, [[maybe_unused]] ListTokenPtr::iterator& end)
 {
@@ -71,7 +68,7 @@ void evaluate_else_sanity([[maybe_unused]]ListTokenPtr::iterator& it, [[maybe_un
 
 	auto ctx = data.active_scope->get_previous_scope_context();
 
-	if (ctx.has_value() == false || ctx.value() != tokentype_t::IF)
+	if (ctx.has_value() == false || ctx.value() != scope_type_e::IF)
 		throw linting_error(it->get(), "the 'else' keyword is only allowed after an 'if' block");
 
 	if(VECTOR_PEEK(it, 1, end) == false){
@@ -80,19 +77,20 @@ void evaluate_else_sanity([[maybe_unused]]ListTokenPtr::iterator& it, [[maybe_un
 
 
 	std::advance(it, 1);
-
-	auto prev_block = dynamic_cast<if_block*>(data.active_scope->block);
-
+	
+	//get the if statement
+	auto block = dynamic_cast<conditional_block*>(data.current_function->blocks.back());
+	
+	//go to the deepest nest
+	while (block->next) {
+		block = block->next.get();
+	}
+	//prepare the next block
+	block->next = std::make_unique<conditional_block>();
 
 	//else if block
 	if (it->get()->tt == tokentype_t::IF) {
-
-		if(data.active_scope->block == nullptr)
-			throw linting_error(it->get(), "how can the block be a nullptr");
-
-		auto& results = evaluate_if_sanity(it, end);
-		prev_block->next = std::move(results);
-		data.active_scope->block = prev_block->next.get();
+		evaluate_if_sanity(it, end, block->next);
 		return;
 	}
 
@@ -107,15 +105,8 @@ void evaluate_else_sanity([[maybe_unused]]ListTokenPtr::iterator& it, [[maybe_un
 		throw linting_error(std::next(it)->get(), "empty block");
 	}
 
-	data.active_scope = linting_create_scope_without_range(it, data.active_scope);
-	data.active_scope->scope_type = tokentype_t::ELSE;
-	data.active_scope->emit_to_lower_scope(tokentype_t::ELSE);
-	
-	auto block = std::make_unique<else_block>(it->get()); //create data for runtime
-
-
-	block->start = std::next(it);
-	prev_block->next = std::move(block);
-	data.active_scope->block = prev_block->next.get();
+	data.active_scope = linting_create_scope_without_range(data.active_scope);
+	data.active_scope->scope_type = scope_type_e::ELSE;
+	data.active_scope->emit_to_lower_scope(scope_type_e::ELSE);
 
 }

@@ -2,7 +2,7 @@
 
 #include "pch.hpp"
 #include "operand.hpp"
-
+#include "linting_exceptions.hpp"
 
 //struct expression_node {
 //
@@ -49,7 +49,7 @@
 //};
 
 template<typename T>
-std::unique_ptr<operand> create_rvalue(const T& t)
+constexpr std::unique_ptr<operand> create_rvalue(const T& t)
 {
 	std::unique_ptr<datatype> v = std::make_unique<T>(t);
 	return std::make_unique<operand>(std::move(v));
@@ -61,28 +61,26 @@ inline std::unique_ptr<operand> create_lvalue(variable* v)
 class evaluation_functions
 {
 public:
-	static auto& getInstance() {
-		static evaluation_functions instance;
-		return instance;
-	}
+	static void initialize_functions();
 
-	void initialize_functions();
-
-
-	auto find_function(const punctuation_e p) const {
+	using funcptr = std::unique_ptr<operand>(*)(operand&, operand&);
+	static funcptr find_function(const punctuation_e p) {
 		const auto found = eval_functions.find(p);
-		return found != eval_functions.end() ? std::make_optional(found->second) : std::nullopt;
-	}
 
+		if (found == eval_functions.end()) {
+			throw linting_error("unsupported operator");
+		}
+		return found->second;
+	}
 private:
 	static std::unique_ptr<operand> arithmetic_addition(operand&, operand&);
 	//static std::unique_ptr<expression_node> arithmetic_subtraction(expression_node&, expression_node&);
 
-	//static std::unique_ptr<expression_node> assignment(expression_node&, expression_node&);
+	static std::unique_ptr<operand> assignment(operand&, operand&);
 	static std::unique_ptr<operand> less_than(operand&, operand&);
 	static std::unique_ptr<operand> equality(operand&, operand&);
 
 
-	std::unordered_map<punctuation_e, std::function<std::unique_ptr<operand>(operand&, operand&)>> eval_functions;
+	static std::unordered_map<punctuation_e, funcptr> eval_functions;
 
 };

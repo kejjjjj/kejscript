@@ -16,46 +16,29 @@ linting_scope* linting_create_scope_without_range(linting_scope* block)
 
 	return scope;
 }
-linting_scope* linting_delete_scope([[maybe_unused]] ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, token_t* token, linting_scope* block)
+linting_scope* linting_delete_scope([[maybe_unused]] ListTokenPtr::iterator& it, linting_scope* block)
 {
 	LOG("deleting the scope\n");
 
 	if (block->is_global_scope()) {
-		throw linting_error(token, "found a '}' but it's not closing anything\n");
+		throw linting_error(it->get(), "found a '}' but it's not closing anything\n");
 	}
 
 	block->print_stack();
 	linting_scope* temp_block = block->lower_scope;
 
+	auto& f = linting_data::getInstance().current_function;
+	
+	if (f->nest_depth)
+		--f->nest_depth;
+
+	//a function ends here so push it to the table
 	if (block->is_inside_of_a_function && block->lower_scope->is_inside_of_a_function == false) {
-		auto& f = linting_data::getInstance().current_function;
-		f.end = std::prev(it);
-		LOG(std::format("creating a func from [{}, {}] to [{}, {}]\n", f.start->get()->line, f.start->get()->column, f.end->get()->line, f.end->get()->column));
-
-		linting_data::getInstance().function_declare(std::move(f));
-		f = function_def();
+		linting_data::getInstance().function_declare(f); //note: std::move was called on f so it is no longer valid
 	}
 
-
-	if (block->block) {
-		block->block->end = (it);
-
-		if (VECTOR_PEEK(it, 1, end) == false)
-			throw linting_error(it->get(), "weird eof");
-
-		//peek if next token is 'else' and if it isn't then this block chain can end
-		if (std::next(it)->get()->tt != tokentype_t::ELSE) {
-			LOG("clearing if blocks\n");
-			temp_block->block = nullptr;
-		}
-		else {
-			temp_block->block = block->block;
-		}
-	}
-
+	delete block;
 	block = nullptr;
-
-
 
 	return temp_block;
 }

@@ -2,6 +2,8 @@
 #include "operators.hpp"
 #include "runtime_exception.hpp"
 
+std::unordered_map<punctuation_e, evaluation_functions::funcptr>  evaluation_functions::eval_functions;
+
 void evaluation_functions::initialize_functions()
 {
 	static bool once = true;
@@ -12,7 +14,7 @@ void evaluation_functions::initialize_functions()
 	eval_functions.insert({ P_ADD, arithmetic_addition });
 	//eval_functions.insert({ P_SUB, arithmetic_subtraction });
 
-	//eval_functions.insert({ P_ASSIGN, assignment });
+	eval_functions.insert({ P_ASSIGN, assignment });
 	eval_functions.insert({ P_LESS_THAN, less_than });
 
 	eval_functions.insert({ P_EQUALITY, equality });
@@ -62,33 +64,31 @@ std::unique_ptr<operand> evaluation_functions::arithmetic_addition(operand& left
 //	}
 //
 //}
-//std::unique_ptr<expression_node> evaluation_functions::assignment([[maybe_unused]]expression_node& left, [[maybe_unused]] expression_node& right)
-//{
-//	auto& left_operand = std::get<std::unique_ptr<operand>>(left._op);
-//	auto& right_operand = std::get<std::unique_ptr<operand>>(right._op);
-//
-//	auto right_value = right_operand->lvalue_to_rvalue();
-//
-//	if (left_operand->type != operand::Type::LVALUE)
-//		throw runtime_error(left_operand->_operand, "cannot assign to a non-lvalue");
-//	
-//	auto& v = std::get<variable*>(left_operand->value);
-//
-//	switch (right_value->type()) {
-//	case datatype_e::bool_t:
-//		v->value = datatype::cast<bool_dt>(right_value);
-//		break;
-//	case datatype_e::int_t:
-//		v->value = datatype::cast<integer_dt>(right_value);
-//		break;
-//	case datatype_e::double_t:
-//		v->value = datatype::cast<double_dt>(right_value);
-//		break;
-//	}
-//	v->initialized = true;
-//
-//	return create_lvalue(v);
-//}
+std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand, operand& right_operand)
+{
+
+	auto right_value = right_operand.lvalue_to_rvalue();
+
+	if (left_operand.type != operand::Type::LVALUE)
+		throw runtime_error(left_operand._operand, "cannot assign to a non-lvalue");
+	
+	auto& v = std::get<variable*>(left_operand.value);
+
+	switch (right_value->type()) {
+	case datatype_e::bool_t:
+		v->value = datatype::cast<bool_dt>(right_value);
+		break;
+	case datatype_e::int_t:
+		v->value = datatype::cast<integer_dt>(right_value);
+		break;
+	case datatype_e::double_t:
+		v->value = datatype::cast<double_dt>(right_value);
+		break;
+	}
+	v->initialized = true;
+
+	return create_lvalue(v);
+}
 std::unique_ptr<operand> evaluation_functions::equality(operand& left_operand, operand& right_operand)
 {
 

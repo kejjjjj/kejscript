@@ -1,4 +1,27 @@
 fn main()
 {
-	3 + 2 < 1 + 2;
+	def a = 2;
+
+	if(a == 1)
+	{
+		while(a < 10)
+		{
+			a = a + 1;
+		}
+	}
+	else if(a == 2)
+	{
+		while(a < 20)
+		{
+			a = a + 1;
+		}
+	}
+	else
+	{
+		while(a < 30)
+		{
+			a = a + 1;
+		}
+	}
+
 }

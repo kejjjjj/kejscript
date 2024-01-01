@@ -6,12 +6,14 @@
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
 #include "runtime_exception.hpp"
+#include "operators.hpp"
 
 int main()
 {
     std::cout << "Hello World!\n";
 
     script_t script("scripts\\script.kej");
+    evaluation_functions::initialize_functions();
 
     bool linting_failed = false;
 

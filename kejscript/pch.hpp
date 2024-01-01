@@ -2,9 +2,9 @@
 
 #define NOMINMAX
 
-#define ENABLE_linting_LOGGING 1
+#define ENABLE_LOGGING 0
 
-#if ENABLE_linting_LOGGING
+#if ENABLE_LOGGING
 #define LOG(x) std::cout << x
 #else
 #define LOG(x)
@@ -33,6 +33,7 @@ CLASS(const CLASS&) = delete
 #include <source_location>
 #include <unordered_set>
 #include <variant>
+#include <cassert>
 
 #include "punctuation.hpp"
 #include "tokenizer.hpp"

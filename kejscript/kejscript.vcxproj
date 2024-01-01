@@ -108,6 +108,8 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <Optimization>Full</Optimization>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,7 +153,6 @@
     <ClCompile Include="postfix_sanity.cpp" />
     <ClCompile Include="punctuation.cpp" />
     <ClCompile Include="runtime.cpp" />
-    <ClCompile Include="runtime_declaration.cpp" />
     <ClCompile Include="runtime_exception.cpp" />
     <ClCompile Include="runtime_expression.cpp" />
     <ClCompile Include="script.cpp" />
@@ -173,7 +174,6 @@
     <ClInclude Include="pch.hpp" />
     <ClInclude Include="punctuation.hpp" />
     <ClInclude Include="runtime.hpp" />
-    <ClInclude Include="runtime_declaration.hpp" />
     <ClInclude Include="runtime_exception.hpp" />
     <ClInclude Include="runtime_expression.hpp" />
     <ClInclude Include="script.hpp" />

@@ -9,12 +9,12 @@ script_t::script_t(const std::string& filename)
 	std::string path = filename;
 	std::fstream f;
 	path = fs::get_root_directory() + "\\" + path;
-	std::cout << "path: " << path << '\n';
+	//std::cout << "path: " << path << '\n';
 	this->filename = filename;
 	if (!fs::open_file(f, path, fs::fileopen::FILE_IN)) {
 		return;
 	}
-	std::cout << std::format("\"{}\" successfully opened!\n", path);
+	//std::cout << std::format("\"{}\" successfully opened!\n", path);
 	char buf[4096];
 	while (f.read(buf, sizeof(buf)))
 		this->buffer.append(buf, sizeof(buf));
@@ -194,6 +194,15 @@ bool script_t::read_name(token_t& token)
 	const auto reserved_keyword = tokenMap.find(token.string);
 	if (reserved_keyword != tokenMap.end()) {
 		token.tt = reserved_keyword->second;
+
+
+		if (token.tt == tokentype_t::_FALSE || token.tt == tokentype_t::_TRUE) {
+			std::vector<char> v(1);
+			if (token.tt == tokentype_t::_TRUE)			v[0] = 1;
+			else	v[0] = 0;
+
+			token.value = std::make_unique<std::vector<char>>(v);
+		}
 	}
 
 	column += token.string.length();
@@ -277,19 +286,21 @@ void script_t::validate()
 }
 void script_t::execute()
 {
-	runtime& rt = runtime::get_instance();
-
-	rt.initialize(tokens.begin(), tokens.end(), linting_data::getInstance().function_table);
+	runtime::initialize(linting_data::getInstance().function_table);
 	
 	std::chrono::time_point<std::chrono::steady_clock> old = std::chrono::steady_clock::now();
 
-	rt.execute();
+	runtime::execute();
 
 	std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
 	std::chrono::duration<float> difference = now - old;
 
-	rt.stack->print_stack();
+	std::cout << ("\n---- stack ----\n");
 
+	for (auto& v : runtime::stack->variables)
+		std::cout << (std::format("{}<{}> = {}\n", v->identifier, v->value->type_str(), v->value->value_str()));
+
+	std::cout << ("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 
 	printf("\ntime taken: %.6f\n", difference.count());
 

@@ -16,30 +16,29 @@ void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 	else if (std::next(it)->get()->is_operator(P_PAR_OPEN) == false) {
 		throw linting_error(std::next(it)->get(), "expected a '('");
 	}
+	
+	auto block = std::make_unique<while_block>(); //create data for runtime
+	block->condition = std::make_unique<expression_block>();
 
-	data.active_scope = linting_create_scope_without_range(it, data.active_scope);
-	data.active_scope->scope_type = tokentype_t::WHILE;
-	auto target_token = it->get();
+	auto while_block = move_block_to_current_context(block);
 
+	data.active_scope = linting_create_scope_without_range(data.active_scope);
+	data.active_scope->scope_type = scope_type_e::WHILE;
 
-	auto block = std::make_unique<while_block>(it->get()); //create data for runtime
 
 	std::advance(it, 1); //skip the while keyword
+	std::advance(it, 1); //skip the '('
 
-	std::advance(it, 1);
-	block->condition_start = it;
 
-	token_t* start = it->get();
+	if (it == end)
+		throw linting_error(std::prev(it)->get(), "why does the file end here");
 
 	expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
-	it = evaluate_expression_sanity(it, end, stack).it;
+	it = evaluate_expression_sanity(it, end, while_block->condition, stack).it;
 
 	if (it->get()->is_operator(P_PAR_CLOSE) == false) {
 		throw linting_error(it->get(), "expected a '%s'", punctuations[P_PAR_CLOSE].identifier.c_str());
 	}
-
-	//dynamic_cast<punctuation_token_t*>(it->get())->punc = P_SEMICOLON;
-
 
 	if (VECTOR_PEEK(it, 1, end) == false) {
 		throw linting_error("expected a '{' instead of EOF");
@@ -55,20 +54,6 @@ void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 		throw linting_error("didn't expect the file to end here");
 	}
 
-	//remove the { token because it is no longer relevant
-	block->condition_end = it;
-	block->start = it;
-
-	start->block->end = block->start;
-
-	if (block->start->get()->is_operator(P_CURLYBRACKET_CLOSE)) {
-		throw linting_error(block->start->get(), "empty block");
-	}
-
-	data.active_scope->emit_to_lower_scope(tokentype_t::WHILE);
-
-	target_token->block = std::move(block);
-	data.active_scope->block = target_token->block.get();
-
+	data.active_scope->emit_to_lower_scope(scope_type_e::WHILE);
 
 }

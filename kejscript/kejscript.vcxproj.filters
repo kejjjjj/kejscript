@@ -87,9 +87,6 @@
     <ClCompile Include="variable.cpp">
       <Filter>Source Files\runtime</Filter>
     </ClCompile>
-    <ClCompile Include="runtime_declaration.cpp">
-      <Filter>Source Files\runtime</Filter>
-    </ClCompile>
     <ClCompile Include="function.cpp">
       <Filter>Source Files\runtime</Filter>
     </ClCompile>
@@ -147,9 +144,6 @@
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
     <ClInclude Include="variable.hpp">
-      <Filter>Source Files\runtime</Filter>
-    </ClInclude>
-    <ClInclude Include="runtime_declaration.hpp">
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
     <ClInclude Include="function.hpp">

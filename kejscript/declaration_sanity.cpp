@@ -28,8 +28,8 @@ void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::itera
 
 	LOG("declaring: '" << it->get()->string << "'\n");
 
-	data.current_function.variables.push_back(it->get()->string);
-	it->get()->variable_index = data.current_function.variables.size() - 1;
+	auto& funcdef = data.current_function->def;
+	funcdef.variables.push_back(it->get()->string);
 
 	//check if the next token is valid
 	if (VECTOR_PEEK(it, 1, end) == false) {
@@ -51,6 +51,7 @@ void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::itera
 			throw linting_error(it->get(), "expected a '=' or ';'");
 	}
 	
-	it = evaluate_expression_sanity(it, end).it; //and now parse the expression 
-
+	auto block = std::make_unique<expression_block>();
+	it = evaluate_expression_sanity(it, end, block).it; //and now parse the expression 
+	move_block_to_current_context(block);
 }

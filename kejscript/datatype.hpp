@@ -45,20 +45,21 @@ struct datatype
 		return std::make_unique<T>(dynamic_cast<T*>(d)->get());
 	}
 	template<typename T>
-	static auto& cast_normal(const datatype* d) {
+	static constexpr auto& cast_normal(const datatype* d) {
 		return *dynamic_cast<const T*>(d);
 	}
 	template<typename T> 
-	T& getvalue() noexcept;
+	constexpr T& getvalue() noexcept;
 
 	template<typename Base, typename CastType>
-	static Base create_type(const datatype& target);
+	static constexpr Base create_type(const datatype& target);
 
 	template<typename Base, typename CastType>
-	static std::unique_ptr<Base> create_type_ptr(datatype& target);
+	static constexpr std::unique_ptr<Base> create_type_ptr(datatype& target);
 
-protected:
 	std::vector<char> value;
+protected:
+	/*std::vector<char> value;*/
 
 };
 using rvalue = std::unique_ptr<datatype>;
@@ -113,7 +114,7 @@ struct integer_dt : public datatype
 
 	integer_dt operator+(const integer_dt& other) const {
 		auto result = this->get() + other.get();
-		std::cout << std::format("{} + {} = {}\n", this->get(), other.get(), this->get() + other.get());
+		LOG(std::format("{} + {} = {}\n", this->get(), other.get(), this->get() + other.get()));
 		return (decltype(*this))(result);
 	}
 	integer_dt operator-(const integer_dt& other) const {
@@ -126,7 +127,7 @@ struct integer_dt : public datatype
 	}
 	integer_dt operator<(const integer_dt& other) const {
 		bool result = this->get() < other.get();
-		std::cout << std::format("{} < {} = {}\n", this->get(), other.get(), this->get() < other.get());
+		LOG(std::format("{} < {} = {}\n", this->get(), other.get(), this->get() < other.get()));
 		return (decltype(*this))(result);
 	}
 };
@@ -165,7 +166,7 @@ struct double_dt : public datatype
 };
 
 template<typename Base, typename CastType>
-inline Base datatype::create_type(const datatype& target)
+inline constexpr Base datatype::create_type(const datatype& target)
 {
 	switch (target.type()) {
 	case datatype_e::bool_t:
@@ -180,12 +181,12 @@ inline Base datatype::create_type(const datatype& target)
 }
 
 template<typename Base, typename CastType>
-inline std::unique_ptr<Base> datatype::create_type_ptr(datatype& target)
+inline constexpr std::unique_ptr<Base> datatype::create_type_ptr(datatype& target)
 {
 	return std::make_unique<Base>(create_type<Base, CastType>(target));
 }
 
 template<typename T>
-inline T& datatype::getvalue() noexcept {
+inline constexpr T& datatype::getvalue() noexcept {
 	return *dynamic_cast<T*>(this);
 }

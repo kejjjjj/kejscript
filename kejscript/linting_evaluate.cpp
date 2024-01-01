@@ -16,7 +16,7 @@ void linting_data::validate(ListTokenPtr::iterator it, ListTokenPtr::iterator en
 			active_scope = linting_create_scope_without_range(active_scope);
 			break;
 		case codeblock_parser_type::DELETE_SCOPE:
-			active_scope = linting_delete_scope(it, end, codepos->get(), active_scope);
+			active_scope = linting_delete_scope(it, active_scope);
 			break;
 		default:
 			evaluate_identifier_sanity(codepos, end);
@@ -40,7 +40,7 @@ void linting_data::validate(ListTokenPtr::iterator it, ListTokenPtr::iterator en
 	if (entry == function_table.end())
 		throw linting_error("didn't find the main() function");
 
-	if(entry->second.parameters.size() != NULL)
+	if(entry->second->def.parameters.size() != NULL)
 		throw linting_error("the main() function should not have parameters");
 
 
@@ -79,16 +79,15 @@ void evaluate_identifier_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterat
 	case tokentype_t::RETURN:
 		return evaluate_return_sanity(it, to);
 	case tokentype_t::IF:
-		evaluate_if_sanity(it, to);
-		return;
+		return evaluate_if_sanity(it, to, nullptr);
 	case tokentype_t::ELSE:
 		return evaluate_else_sanity(it, to);
 	case tokentype_t::WHILE:
 		return evaluate_while_sanity(it, to);
 	}
 
-	it = evaluate_expression_sanity(it, to).it;
-
-
+	auto block = std::make_unique<expression_block>();
+	it = evaluate_expression_sanity(it, to, block).it;
+	move_block_to_current_context(block);
 
 }

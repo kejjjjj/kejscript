@@ -17,28 +17,18 @@ struct linting_data
 {
 	static linting_data& getInstance() { static linting_data d; return d; }
 	linting_scope* active_scope = 0;
-	function_def current_function;
+	std::unique_ptr<function_block> current_function;
 	ListTokenPtr* tokens = 0;
 	void validate(ListTokenPtr::iterator it, ListTokenPtr::iterator to);
 
-	//void remove_token(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to) {
-	//	bool is_end = (to == tokens->end());
-	//	auto end_diff = std::distance(tokens->begin(), to);
-	//	it = std::prev(tokens->erase(it, std::next(it)));
-	//	to = is_end ? tokens->end() : std::next(tokens->begin(),  end_diff - 1);
-	//}
-
-	bool function_exists(const std::string& s) const {
-		return function_table.find(s) != function_table.end();
-	}
-	bool function_declare(function_def&& def) {
+	bool function_exists(const std::string& s) const { return function_table.find(s) != function_table.end(); }
+	bool function_declare(std::unique_ptr<function_block>& func) {
 		
-		if (function_exists(def.identifier))
+		if (function_exists(func->def.identifier))
 			return false;
 
-		LOG("declaring the function '" << def.identifier << "' with " << def.parameters.size() << " parameters!\n");
-
-		function_table.insert({ def.identifier, def });
+		LOG("declaring the function '" << func->def.identifier << "' with " << func->def.parameters.size() << " parameters!\n");
+		function_table.insert({ func->def.identifier, std::move(func) });
 		return true;
 	}
 
@@ -51,18 +41,18 @@ struct linting_data
 			if (function == function_table.end())
 				throw linting_error(undefined_var.location->get(), "unknown function '%s'", undefined_var.identifier.c_str());
 
-			if (undefined_var.num_args != function->second.parameters.size()) {
+			if (undefined_var.num_args != function->second->def.parameters.size()) {
 				throw linting_error(undefined_var.location->get(), "no instance of the function '%s' accepts %i arguments", undefined_var.identifier.c_str(), (unsigned __int64)undefined_var.num_args);
 
 			}
 		}
 		undefined_variables.clear();
 	}
-
-	std::unordered_map<std::string, function_def> function_table;
+	//code_block* current_block = nullptr; //points to the code block the program is working with at the moment
+	std::unordered_map<std::string, std::unique_ptr<function_block>> function_table;
 	std::list<undefined_variable> undefined_variables;
 
-
+	//NO_COPY_CONSTRUCTOR(linting_data);
 };
 
 struct linting_expression
@@ -74,7 +64,7 @@ struct l_expression_context
 {
 	l_expression_context(const expression_token_stack& _stack) : stack(_stack) {}
 
-	linting_expression expression;
+	//linting_expression expression;
 	//std::vector<linting_expression> expressions;
 	expression_token_stack stack;
 	std::unique_ptr<undefined_variable> undefined_var;
@@ -85,6 +75,7 @@ struct l_expression_results
 {
 	ListTokenPtr::iterator it;
 	size_t num_evaluations = 0;
+
 };
 
 codeblock_parser_type get_codeblock_type(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
@@ -92,12 +83,59 @@ codeblock_parser_type get_codeblock_type(ListTokenPtr::iterator& it, ListTokenPt
 void evaluate_identifier_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
 void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
-[[nodiscard]] l_expression_results evaluate_expression_sanity(ListTokenPtr::iterator it, ListTokenPtr::iterator to, const expression_token_stack& = expression_token_stack());
+[[nodiscard]] l_expression_results evaluate_expression_sanity(ListTokenPtr::iterator it, ListTokenPtr::iterator to, std::unique_ptr<expression_block>& block, const expression_token_stack& = expression_token_stack());
 void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_return_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
-std::unique_ptr<code_block>& evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+void evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, const std::unique_ptr<conditional_block>&);
 void evaluate_else_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
 [[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(ListTokenPtr::iterator begin, ListTokenPtr::iterator& end, l_expression_context& context);
 [[nodiscard]] ListTokenPtr::iterator  evaluate_function_call_sanity(ListTokenPtr::iterator begin, ListTokenPtr::iterator& end, l_expression_context& context);
+
+
+
+template <typename t>
+inline t* move_block_to_current_context(std::unique_ptr<t>& block)
+{
+	auto& data = linting_data::getInstance();
+	linting_scope* scope = data.active_scope;
+
+	code_block* cblock = nullptr;
+
+	//function scope root
+	if (scope->lower_scope->is_global_scope()) {
+		data.current_function->add_instruction(block);
+		cblock = data.current_function->instructions.back().get();
+		return dynamic_cast<t*>(cblock);
+	}
+
+	//currently inside of a code block
+	
+	bool increase_nesting = block->type() >= code_block_e::CONDITIONAL && block->type() <= code_block_e::WHILE;
+
+	cblock = data.current_function->blocks.back();
+
+	//a conditional block can have chained blocks so iterate to the last block
+	if (cblock->type() == code_block_e::CONDITIONAL) {
+		conditional_block* nextblock = dynamic_cast<conditional_block*>(cblock);
+		while (nextblock->next) {
+			nextblock = nextblock->next.get();
+		}
+
+		cblock = nextblock;
+	}
+
+	for(size_t i = 0; i < data.current_function->nest_depth; i++)
+		cblock = cblock->contents.back().get();
+
+	cblock->contents.push_back(std::move(block));
+
+	//a statement that will increase the nesting!
+	if (increase_nesting) {
+		++data.current_function->nest_depth;
+		cblock = cblock->contents.back().get();
+	}
+
+	return dynamic_cast<t*>(cblock);
+}

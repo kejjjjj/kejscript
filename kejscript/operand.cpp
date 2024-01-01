@@ -12,7 +12,7 @@ operand::operand(singular& expr) : value(), _operand(expr.token)
 	auto& oper = std::get<validation_expression>(expr.value);
 
 	if (oper.type == validation_expression::Type::OTHER) {
-		const auto& table = runtime::get_instance().stack->variables;
+		const auto& table = runtime::stack->variables;
 
 		variable* r = table[ std::get<validation_expression::other>(oper.value).variable_index ].get();
 		value = r;

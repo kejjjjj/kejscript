@@ -3,7 +3,7 @@
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
 
-void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, std::vector<std::string>& parameters);
+void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, function_def& def);
 
 void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
 {
@@ -17,10 +17,11 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 		throw linting_error(it->get(), "expected a name for the function");
 	}
 
-
 	std::advance(it, 1); //skip fn
 	
-	data.current_function.identifier = it->get()->string;
+	function_def funcdef;
+
+	funcdef.identifier = it->get()->string;
 	std::vector<std::string> parameters;
 
 	//make sure that next token is (
@@ -33,6 +34,7 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 	//create the scope for the function
 	data.active_scope = linting_create_scope_without_range(data.active_scope);
 	data.active_scope->is_inside_of_a_function = true;
+
 	//start parsing the parameters
 
 	if(VECTOR_PEEK(it, 1, end) == false)
@@ -40,7 +42,7 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 
 	//if the the next punctuation mark is a closing parenthesis then there is no point in parsing the parameters
 	if (std::next(it)->get()->is_operator(P_PAR_CLOSE) == false) {
-		parse_parameters(it, end, data.active_scope, data.current_function.parameters);
+		parse_parameters(it, end, data.active_scope, funcdef);
 	}else
 		std::advance(it, 1); //skip to the ')' if there are no parameters
 
@@ -57,11 +59,11 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 		throw linting_error("expected a '}' but encountered EOF");
 	}
 
-	data.current_function.start = (it);
+	data.current_function = std::make_unique<function_block>(funcdef);
 
 }
 
-void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, std::vector<std::string>& parameters)
+void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, function_def& def)
 {
 	
 	if (it == end)
@@ -76,10 +78,11 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 	else if (std::next(it)->get()->is_identifier() == false) {
 		throw linting_error(std::next(it)->get(), "expected an identifier");
 	}
-
+	std::vector<std::string>& parameters = def.parameters;
 	std::advance(it, 1);
 
 	parameters.push_back(it->get()->string);
+	def.variables.push_back(it->get()->string);
 
 	if (!scope->declare_variable(parameters.back())) {
 		throw linting_error(it->get(), "this parameter has already been declared");
@@ -91,7 +94,7 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 	std::advance(it, 1);
 
 	if (it->get()->is_operator(punctuation_e::P_COMMA)) 
-		return parse_parameters(it, end, scope, parameters); //go to next parameter
+		return parse_parameters(it, end, scope, def); //go to next parameter
 	
 	if (it->get()->is_operator(punctuation_e::P_PAR_CLOSE) == false)
 		throw linting_error(it->get(), "expected to find a ')'");
@@ -100,25 +103,27 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 	return;
 
 }
-void evaluate_return_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
+void evaluate_return_sanity(ListTokenPtr::iterator& it, [[maybe_unused]]ListTokenPtr::iterator& end)
 {
+	//in case I forget :blush:
+	throw linting_error(it->get(), "return: fix me first!");
 
-	auto& c_data = linting_data::getInstance();
+	//auto& c_data = linting_data::getInstance();
 
-	if (c_data.active_scope->is_inside_of_a_function == false)
-		throw linting_error(it->get(), "the 'return' keyword is only allowed within function scopes");
+	//if (c_data.active_scope->is_inside_of_a_function == false)
+	//	throw linting_error(it->get(), "the 'return' keyword is only allowed within function scopes");
 
-	//check if the next token is valid
-	if (VECTOR_PEEK(it, 1, end) == false) {
-		throw linting_error("expected an expression before EOF");
-	}
+	////check if the next token is valid
+	//if (VECTOR_PEEK(it, 1, end) == false) {
+	//	throw linting_error("expected an expression before EOF");
+	//}
 
-	//skip the return keyword
-	std::advance(it, 1);
+	////skip the return keyword
+	//std::advance(it, 1);
 
-	if (it->get()->is_operator(punctuation_e::P_SEMICOLON) == false) { //no point in parsing the expression after if there is no expression
-		it = evaluate_expression_sanity(it, end).it;
-	}
+	//if (it->get()->is_operator(punctuation_e::P_SEMICOLON) == false) { //no point in parsing the expression after if there is no expression
+	//	//it = evaluate_expression_sanity(it, end).it;
+	//}
 
 	//LOG("done!\n");
 	

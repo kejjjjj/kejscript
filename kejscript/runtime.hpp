@@ -4,70 +4,27 @@
 
 #include "variable.hpp"
 
-struct stack_t
+struct function_stack
 {
-	stack_t(const ListTokenPtr::iterator& stack_frame) : return_location(stack_frame){}
-
-	void declare_variable(const std::string& i) {
-		variables.push_back(std::move(std::make_unique<variable>(i)));
-		//LOG("declared '" << i << "'\n");
-	}
-
-	void print_stack()
-	{
-		std::cout << ("\n---- stack ----\n");
-		for (auto& v : variables) {
-			std::cout << (std::format("{}<{}> = {}\n", v->identifier, v->value->type_str(), v->value->value_str()));
-
-		}
-		std::cout << ("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-
-	}
-
-	//std::unordered_map<std::string, std::unique_ptr<variable>> variables;
+	function_stack() = default;
 	std::vector<std::unique_ptr<variable>> variables;
-	bool is_conditional_block() const noexcept { return conditional_block.get(); }
 
-	struct block_t {
-		block_t(const tokentype_t t) : blockType(t){}
-		ListTokenPtr::iterator start;
-		ListTokenPtr::iterator end;
-		ListTokenPtr::iterator jmp;
-		bool exit = false;
-		tokentype_t blockType = tokentype_t::UNKNOWN;
-	};
-
-	std::unique_ptr<block_t> conditional_block = 0;
-	ListTokenPtr::iterator return_location;
-
-	std::unique_ptr<stack_t> function_call;
-	stack_t& operator=(const stack_t&) = delete;
-	stack_t(const stack_t&) = delete;
+	NO_COPY_CONSTRUCTOR(function_stack);
 };
+
 using code_instruction = std::vector<std::unique_ptr<code_block>>;
+using function_table_t = std::unordered_map<std::string, std::unique_ptr<function_block>>;
 struct runtime
 {
 	runtime() = default;
-	static runtime& get_instance() { static runtime r; return r; }
-	void initialize(code_instruction& instructions, const std::unordered_map<std::string, function_def>& table);
+	static void initialize(function_table_t& table) { function_table = std::move(table); };
+	static void execute();
 
-	void execute();
-
-	std::unique_ptr<stack_t> stack;
+	static std::unique_ptr<function_stack> stack; //this should not be a GLOBAL 
 private:
 	
-	function_def* entry_point = 0;
-	std::unordered_map<std::string, function_def> function_table;
-	code_instruction instructions;
+	static function_table_t function_table;
+	static code_instruction instructions;
 
-	//ListTokenPtr::iterator _begin;
-	//ListTokenPtr::iterator _end;
-
-	
-
-	runtime& operator=(const runtime&) = delete;
-	runtime(const runtime&) = delete;
+	NO_COPY_CONSTRUCTOR(runtime);
 };
-
-codeblock_parser_type get_codeblock_type(ListTokenPtr::iterator& it);
-void evaluate_token(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end);
