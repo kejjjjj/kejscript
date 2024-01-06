@@ -38,9 +38,6 @@ CLASS(const CLASS&) = delete
 #include "punctuation.hpp"
 #include "tokenizer.hpp"
 #include "script.hpp"
-//#include "linting_exceptions.hpp"
-//#include "linting_scope.hpp"
-//#include "linting_evaluate.hpp"
 
 
 #include "file_io.hpp"

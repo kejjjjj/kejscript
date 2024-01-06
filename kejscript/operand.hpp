@@ -11,7 +11,7 @@ struct operand
 		RVALUE
 	}type = Type::LVALUE;
 	operand() = default;
-	operand(singular& expr);
+	operand(singular& expr, struct function_stack* stack);
 	operand(variable* v) : value(v), type(Type::LVALUE) {}
 	operand(std::unique_ptr<datatype>&& expr) : value(std::move(expr)), type(Type::RVALUE) {}
 
@@ -22,10 +22,18 @@ struct operand
 	std::variant<std::unique_ptr<datatype>, variable*> value;
 	
 	void cast_weaker_operand(datatype_e this_type, datatype_e other_type, operand& other);
+	void cast_weaker_operand(datatype* other_type);
+
 	void implicit_cast(operand& other);
+	void implicit_cast(datatype* other);
+
 	void implicit_cast(operand& other, datatype* l, datatype* r);
+	bool has_value() noexcept;
+	bool is_integral();
+	bool bool_convertible();
 
 	datatype* lvalue_to_rvalue();
+	std::unique_ptr<operand> create_copy();
 	datatype* get_value();
 	std::unique_ptr<datatype>& get_value_move();
 

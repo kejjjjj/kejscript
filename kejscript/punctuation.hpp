@@ -32,6 +32,8 @@ enum punctuation_e : char
 	P_ASSIGN,
 
 	P_EQUALITY,
+	P_MODULO,
+	P_MULTIPLICATION,
 
 	P_PAR_OPEN,
 	P_PAR_CLOSE,
@@ -65,6 +67,9 @@ const static punctuation_t punctuations[] =
 	{"-", P_SUB, ADDITIVE},
 
 	{"<", P_LESS_THAN, EQUALITY},
+
+	{"%", P_MODULO, MULTIPLICATIVE},
+	{"*", P_MULTIPLICATION, MULTIPLICATIVE},
 
 	{"=", P_ASSIGN, ASSIGNMENT},
 

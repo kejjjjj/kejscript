@@ -152,14 +152,9 @@ struct code_block
 	virtual ~code_block() = default;
 	//std::list<std::unique_ptr<code_block>> contents; maybe one day
 
-	virtual void execute() = 0;
-
-	void eval_block() {
-
-		for (auto& instruction : contents)
-			instruction->execute();
-
-	}
+	//if this returns true, then it means that the current function wants to return
+	virtual bool execute(struct function_stack* stack) = 0; 
+	bool eval_block(struct function_stack* stack);
 
 	virtual code_block_e type() const noexcept(true) = 0;
 	function_block* owner = 0; //the function that owns this code block
@@ -187,13 +182,13 @@ struct function_block
 		assert("get_index_for_variable(): didn't find variable.. how?");
 		return 0;
 	}
-	function_block* caller = 0; //the function that called this function
 	std::list<std::unique_ptr<code_block>> instructions;
 	std::vector<code_block*> blocks; //keeps track of the current codeblock (points to the instructions list)
-	struct function_stack* stack = 0;
+	//struct function_stack* stack = 0;
 	struct operand* return_value = 0;
 	size_t nest_depth = 0;
 	function_def def;
+	bool entrypoint = false;
 	NO_COPY_CONSTRUCTOR(function_block);
 };
 struct expression_block : public code_block
@@ -201,7 +196,7 @@ struct expression_block : public code_block
 	expression_block() = default;
 	~expression_block() = default;
 
-	void execute() override;
+	bool execute(struct function_stack* stack) override;
 
 	std::unique_ptr<ast_node> ast_tree;
 	std::unique_ptr<expression_block> next; //indicates that there was more than one evaluation (function call arguments)
@@ -213,7 +208,7 @@ struct conditional_block : public code_block
 	conditional_block() = default;
 	~conditional_block() = default;
 	std::unique_ptr<expression_block> condition;
-	void execute() override;
+	bool execute(struct function_stack* stack) override;
 
 	code_block_e type() const noexcept(true) override { return code_block_e::CONDITIONAL; }
 	std::unique_ptr<conditional_block> next; //jump location if the condition is not true
@@ -225,7 +220,7 @@ struct function_call : public code_block
 	~function_call() = default;
 	function_block* target = 0;
 	std::unique_ptr<expression_block> arguments;
-	void execute() override { }; //implement!
+	bool execute(struct function_stack* stack) override { stack; return false; }; //implement!
 
 	code_block_e type() const noexcept(true) override { return code_block_e::FN_CALL; }
 };
@@ -234,14 +229,14 @@ struct while_block : public code_block
 	while_block() = default;
 	~while_block() = default;
 	std::unique_ptr<expression_block> condition; //I don't want to initialize it in the constructor just to be a bit more explicit
-	void execute() override;
+	bool execute(struct function_stack* stack) override;
 	code_block_e type() const noexcept(true) override { return code_block_e::WHILE; }
 };
 struct return_statement : public code_block
 {
 	return_statement() = default;
 	~return_statement() = default;
-	void execute() override;
+	bool execute(struct function_stack* stack) override;
 	std::unique_ptr<expression_block> expression; //this can be a nullptr if returning void
 	code_block_e type() const noexcept(true) override { return code_block_e::RETURN; }
 

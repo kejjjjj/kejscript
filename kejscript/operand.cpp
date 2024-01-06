@@ -1,8 +1,9 @@
 #include "operand.hpp"
 #include "runtime_exception.hpp"
 #include "runtime.hpp"
+#include "operators.hpp"
 
-operand::operand(singular& expr) : value(), _operand(expr.token)
+operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr.token)
 {
 	using rvalue = std::unique_ptr<datatype>;
 
@@ -12,7 +13,7 @@ operand::operand(singular& expr) : value(), _operand(expr.token)
 	auto& oper = std::get<validation_expression>(expr.value);
 
 	if (oper.type == validation_expression::Type::OTHER) {
-		const auto& table = expr.owner->stack->variables;
+		const auto& table = stack->variables;
 
 		variable* r = table[ std::get<validation_expression::other>(oper.value).variable_index ].get();
 		
@@ -77,6 +78,37 @@ void operand::cast_weaker_operand(datatype_e this_type, datatype_e other_type, o
 	}
 
 }
+void operand::cast_weaker_operand(datatype* other)
+{
+	datatype* v = get_value();
+
+	datatype_e this_type = v->type();
+	datatype_e other_type = other->type();
+
+	datatype* stronger = 0;
+	datatype* weaker = 0;
+
+	if (this_type > other_type) {
+		stronger = v;
+		weaker = other;
+	}
+	else if (this_type < other_type) {
+		stronger = other;
+		weaker = v;
+	}
+	else
+		return;
+
+	switch (stronger->type()) {
+	case datatype_e::int_t:
+		*weaker = datatype::create_type_copy<integer_dt, int>(datatype::cast_normal<integer_dt>(weaker));
+		break;
+	case datatype_e::double_t:
+		*weaker = datatype::create_type_copy<double_dt, double>(datatype::cast_normal<double_dt>(weaker));
+		break;
+	}
+
+}
 void operand::implicit_cast(operand& other)
 {
 	datatype* l = get_value();
@@ -87,6 +119,18 @@ void operand::implicit_cast(operand& other)
 
 	cast_weaker_operand(l->type(), r->type(), other);
 
+	return;
+
+}
+void operand::implicit_cast(datatype* other)
+{
+	datatype* l = get_value();
+	datatype* r = other;
+
+	if (l->type() == r->type())
+		return;
+
+	cast_weaker_operand(other);
 	return;
 
 }
@@ -101,6 +145,19 @@ void operand::implicit_cast(operand& other, datatype* l, datatype* r)
 
 
 	return;
+}
+bool operand::has_value() noexcept
+{
+	return get_value();
+}
+bool operand::is_integral()
+{
+	return get_value()->is_integral();
+
+}
+bool operand::bool_convertible()
+{
+	return get_value()->bool_convertible();
 }
 [[maybe_unused]] datatype* operand::lvalue_to_rvalue()
 {
@@ -135,6 +192,22 @@ void operand::implicit_cast(operand& other, datatype* l, datatype* r)
 	//std::get<variable*>(value) = nullptr;
 
 	return std::get<rvalue>(value).get();
+}
+std::unique_ptr<operand> operand::create_copy()
+{
+	auto dtype = get_value();
+
+	switch (dtype->type()) {
+	case datatype_e::bool_t:
+		return create_rvalue<bool_dt>(dtype->getvalue<bool_dt>());
+	case datatype_e::int_t:
+		return create_rvalue<integer_dt>(dtype->getvalue<integer_dt>());
+	case datatype_e::double_t:
+		return create_rvalue<double_dt>(dtype->getvalue<double_dt>());
+	}
+
+	return nullptr;
+
 }
 datatype* operand::get_value()
 {

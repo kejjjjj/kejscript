@@ -39,6 +39,10 @@ struct datatype
 
 	virtual std::string type_str() const noexcept(true) = 0;
 	virtual std::string value_str() const noexcept(true) = 0;
+	virtual bool is_integral() const noexcept(true) = 0;
+	virtual bool bool_convertible() const noexcept(true) = 0;
+
+	void implicit_cast(datatype* other);
 
 	template<typename T>
 	static auto cast(datatype*d) {
@@ -54,7 +58,7 @@ struct datatype
 	template<typename Base, typename CastType>
 	static constexpr Base create_type(const datatype& target);
 	template<typename Base, typename CastType>
-	static constexpr Base create_type_copy(Base target);
+	static constexpr Base create_type_copy(const Base& target);
 	template<typename Base, typename CastType>
 	static constexpr std::unique_ptr<Base> create_type_ptr(datatype& target);
 
@@ -78,6 +82,8 @@ struct bool_dt : public datatype
 	const bool get() const noexcept { return *reinterpret_cast<const bool*>(value.data()); }
 	std::string type_str() const noexcept(true) override { return "bool"; }
 	std::string value_str() const noexcept(true) override { return get() == true ? "true" : "false"; }
+	bool is_integral() const noexcept(true) override { return true; }
+	bool bool_convertible() const noexcept(true) override { return true; }
 
 	bool_dt operator+(const bool_dt& other) const {
 		bool result = this->get() + other.get();
@@ -93,6 +99,10 @@ struct bool_dt : public datatype
 	}
 	bool_dt operator<(const bool_dt& other) const {
 		bool result = this->get() < other.get();
+		return (decltype(*this))(result);
+	}
+	bool_dt operator*(const bool_dt& other) const {
+		bool result = this->get() * other.get();
 		return (decltype(*this))(result);
 	}
 };
@@ -111,6 +121,8 @@ struct integer_dt : public datatype
 	const int32_t get() const noexcept { return *reinterpret_cast<const int32_t*>(value.data()); }
 	std::string type_str() const noexcept(true) override { return "int"; }
 	std::string value_str() const noexcept(true) override { return std::to_string(get()); }
+	bool is_integral() const noexcept(true) override { return true; }
+	bool bool_convertible() const noexcept(true) override { return true; }
 
 
 	integer_dt operator+(const integer_dt& other) const {
@@ -131,6 +143,15 @@ struct integer_dt : public datatype
 		LOG(std::format("{} < {} = {}\n", this->get(), other.get(), this->get() < other.get()));
 		return (decltype(*this))(result);
 	}
+	integer_dt operator%(const integer_dt& other) const {
+		int result = this->get() % other.get();
+		LOG(std::format("{} % {} = {}\n", this->get(), other.get(), this->get() % other.get()));
+		return (decltype(*this))(result);
+	}
+	integer_dt operator*(const integer_dt& other) const {
+		int result = this->get() * other.get();
+		return (decltype(*this))(result);
+	}
 };
 
 struct double_dt : public datatype
@@ -147,6 +168,8 @@ struct double_dt : public datatype
 	const double get() const noexcept { return *reinterpret_cast<const double*>(value.data()); }
 	std::string type_str() const noexcept(true) override { return "double"; }
 	std::string value_str() const noexcept(true) override { return std::to_string(get()); }
+	bool is_integral() const noexcept(true) override { return false; }
+	bool bool_convertible() const noexcept(true) override { return true; }
 
 	double_dt operator+(const double_dt& other) const {
 		auto result = this->get() + other.get();
@@ -162,6 +185,10 @@ struct double_dt : public datatype
 	}
 	double_dt operator<(const double_dt& other) const {
 		bool result = this->get() < other.get();
+		return (decltype(*this))(result);
+	}
+	double_dt operator*(const double_dt& other) const {
+		auto result = this->get() * other.get();
 		return (decltype(*this))(result);
 	}
 };
@@ -181,7 +208,7 @@ inline constexpr Base datatype::create_type(const datatype& target)
 	throw std::logic_error("yea");
 }
 template<typename Base, typename CastType>
-inline constexpr Base datatype::create_type_copy(Base target)
+inline constexpr Base datatype::create_type_copy(const Base& target)
 {
 	switch (target.type()) {
 	case datatype_e::bool_t:

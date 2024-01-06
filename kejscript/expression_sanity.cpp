@@ -247,7 +247,6 @@ bool peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l_
 		auto scope = linting_data::getInstance().active_scope;
 		auto& data = linting_data::getInstance();
 		if (scope->variable_exists(token->string) == false && !data.function_exists(token->string)) {
-
 			throw linting_error(token, "the identifier '%s' is undefined", token->string.c_str());
 		}
 

@@ -3,47 +3,46 @@
 #include "runtime_expression.hpp"
 
 //these pointers don't get memory managed here
-std::unique_ptr<operand> call_function(function_block* caller, function_block* callee, expression_block* args)
+std::unique_ptr<operand> call_function(
+	function_block* caller, 
+	function_block* callee, 
+	const std::list<std::unique_ptr<operand>>& args, 
+	[[maybe_unused]]function_stack* stack, 
+	struct function_stack** main_stack)
 {
-	callee->caller = caller;
-	auto stack = std::make_unique<function_stack>();
+	LOG("caller: " << caller << '\n');
 
-	for (auto& param : callee->def.parameters) {
 
-		stack->variables.push_back(std::make_unique<variable>(param));
-		stack->variables.back()->value = std::move(evaluate_expression(caller, args->ast_tree)->get_value_move());
-		stack->variables.back()->initialized = true;
+	auto unique_stack = std::make_unique<function_stack>(); //no need to manually reset this
+	auto stack_ptr = unique_stack.get();
+	auto arg = args.begin();
+	for (const auto& param : callee->def.parameters) {
+		stack_ptr->variables.push_back(std::make_unique<variable>(param));
+		evaluation_functions::assign_to_lvalue(stack_ptr->variables.back().get(), *arg->get());
+		++arg;
 	}
+
 	for (auto& v : callee->def.variables) {
-		stack->variables.push_back(std::make_unique<variable>(v));
+		stack_ptr->variables.push_back(std::make_unique<variable>(v));
 	}
 
-	callee->stack = stack.get();
 	for (auto& instruction : callee->instructions) {
 
-		instruction->execute();
-
-		if (instruction->type() == code_block_e::RETURN) {
-			
-			
-			
-
+		if (instruction->execute(stack_ptr)) {
 			auto returned_value = std::unique_ptr<operand>(callee->return_value); //claim ownership!
-			int value = *reinterpret_cast<int*>(returned_value->get_value()->value.data());
 
-			stack.reset();
-			return 	create_rvalue<integer_dt>(integer_dt(value));
+			returned_value->lvalue_to_rvalue();
+			callee->return_value = 0;
+			return returned_value;
+
 		}
+		
+	}
+	if (main_stack && caller->entrypoint) { //give the information back to the entrypoint
+		*main_stack = unique_stack.release();
+		return nullptr;
 	}
 
-	LOG("\n\n-----returning from: " << callee->def.identifier << "-----\n\n");
-	for (auto& v : stack->variables) {
-		if (v->value)
-			LOG(std::format("{}<{}> = {}\n", v->identifier, v->value->type_str(), v->value->value_str()));
-		else
-			LOG(std::format("{}<uninitialized>\n", v->identifier));
-	}
-
-	stack.reset();
+	unique_stack.reset();
 	return nullptr;
 }

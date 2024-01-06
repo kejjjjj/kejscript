@@ -287,23 +287,7 @@ void script_t::validate()
 void script_t::execute()
 {
 	runtime::initialize(linting_data::getInstance().function_table);
-	
-	std::chrono::time_point<std::chrono::steady_clock> old = std::chrono::steady_clock::now();
-
 	runtime::execute();
-
-	std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
-	std::chrono::duration<float> difference = now - old;
-
-	//std::cout << ("\n---- stack ----\n");
-
-	//for (auto& v : runtime::stack->variables)
-	//	std::cout << (std::format("{}<{}> = {}\n", v->identifier, v->value->type_str(), v->value->value_str()));
-
-	//std::cout << ("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-
-	printf("\ntime taken: %.6f\n", difference.count());
-
 
 
 }

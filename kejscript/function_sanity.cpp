@@ -59,9 +59,12 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 		throw linting_error("expected a '}' but encountered EOF");
 	}
 
+
+
 	auto func = std::make_unique<function_block>(funcdef);
-	data.function_declare(func);
-	data.current_function = (--data.function_table.end())->second.get();
+	if (func->def.identifier == "main")
+		func->entrypoint = true;
+	data.current_function = data.function_declare(func).get();
 	//std::cout << "loc: " << data.current_function << '\n';
 
 }
@@ -85,7 +88,7 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 	std::advance(it, 1);
 
 	parameters.push_back(it->get()->string);
-	//def.variables.push_back(it->get()->string);
+	def.variables.push_back(it->get()->string);
 
 	if (!scope->declare_variable(parameters.back())) {
 		throw linting_error(it->get(), "this parameter has already been declared");

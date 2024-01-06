@@ -1,13 +1,69 @@
-fn testfunc(aaa)
+fn factorial(n)
 {
-	if(aaa < 100){
-		return testfunc(aaa + 2);
+	if(n == 0){
+		return 1;
+	}
+	else if(n == 1){
+		return 1;
+	}
+	return n * factorial(n-1);
+}
+fn power(base, exp)
+{
+	if(exp == 0){
+		return 1;
+	}
+	else{
+		return base * power(base, exp-1);
+	}
+}
+fn is_prime(num)
+{
+	if(num < 2){
+		return false;
+	}
+	
+	def divisor = 2;
+
+	while(power(divisor, 2) < num + 1){
+		if(num % divisor == 0){
+			return false;
+		}
+		divisor = divisor + 1;
+	}
+	return true;
+
+}
+fn get_nearest_prime(num)
+{
+	if(is_prime(num)){
+		return num;
 	}
 
-	return aaa;
-}
+	def steps_decremented = 1;
+	def steps_incremented = 1;
 
+	while(is_prime(num - steps_decremented) == false){
+		steps_decremented = steps_decremented + 1;
+	}
+	while(is_prime(num + steps_incremented) == false){
+		steps_incremented = steps_incremented + 1;
+	}
+
+	if(steps_incremented < steps_decremented){
+		return num + steps_incremented;
+	}
+	else{
+		return num - steps_decremented;
+	}
+	
+	return 0;
+
+}
 fn main()
 {
-	def v = testfunc(2);
+	def exp = power(factorial(power(2, 2)), 2);
+	def hmm = 120 * 120;
+	def prime = is_prime(53);
+	def nearest_prime = get_nearest_prime(4897);
 }

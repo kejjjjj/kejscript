@@ -32,14 +32,14 @@ struct linting_data
 		return function_table.find(name);
 	}
 	bool function_exists(const std::string& s) const { return function_table.find(s) != function_table.end(); }
-	bool function_declare(std::unique_ptr<function_block>& func) {
+	auto& function_declare(std::unique_ptr<function_block>& func) {
 		
 		if (function_exists(func->def.identifier))
-			return false;
+			throw linting_error("this func already exists");
 
 		LOG("declaring the function '" << func->def.identifier << "' with " << func->def.parameters.size() << " parameters!\n");
-		function_table.insert({ func->def.identifier, std::move(func) });
-		return true;
+		return function_table.insert(function_table.end(), { func->def.identifier, std::move(func) })->second;
+		
 	}
 
 	void test_all_undefined() {
@@ -153,8 +153,10 @@ inline t* move_block_to_current_context(std::unique_ptr<t>& block)
 	//a statement that will increase the nesting!
 	if (increase_nesting) {
 		++data.current_function->nest_depth;
-		cblock = cblock->contents.back().get();
 	}
+
+	if(cblock->contents.size())
+		cblock = cblock->contents.back().get();
 
 	cblock->owner = data.current_function;
 	return dynamic_cast<t*>(cblock);

@@ -12,8 +12,40 @@ code_instruction runtime::instructions;
 void runtime::execute()
 {
 
+
 	auto& entry_point = function_table.find("main")->second;
 
-	call_function(entry_point.get(), entry_point.get(), nullptr);
+
+	std::chrono::time_point<std::chrono::steady_clock> old = std::chrono::steady_clock::now();
+
+	auto main_stack = std::make_unique<function_stack>();
+
+	for (auto& v : entry_point->def.variables) {
+		main_stack->variables.push_back(std::make_unique<variable>(v));
+	}
+	auto ptr = main_stack.get();
+	std::list<std::unique_ptr<operand>> a;
+	call_function(entry_point.get(), entry_point.get(), a, main_stack.get(), &ptr);
 	
+
+	std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+	std::chrono::duration<float> difference = now - old;
+
+	main_stack.reset();
+	main_stack = std::unique_ptr<function_stack>(ptr);
+
+
+	LOG("\n\n-----returning from: " << entry_point->def.identifier << "-----\n\n");
+
+	for (auto& v : main_stack->variables) {
+		if (v->value)
+			std::cout << (std::format("{}<{}> = {}\n", v->identifier, v->value->type_str(), v->value->value_str()));
+		else
+			std::cout << (std::format("{}<uninitialized>\n", v->identifier));
+	}
+	std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+
+	printf("\ntime taken: %.6f\n", difference.count());
+
+
 }
