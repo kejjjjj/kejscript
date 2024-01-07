@@ -119,8 +119,8 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 		//the comma should only exit if we are not using the stack
 		if (it->get()->is_operator(punctuation_e::P_COMMA)) {
 			
-			//this condition means that we are currently parsing function arguments
-			if (ctx.stack.not_in_use() == false && ctx.stack.opening == P_PAR_OPEN)
+			//this condition means that we are currently parsing function arguments or parsing an initializer list
+			if (ctx.stack.not_in_use() == false && ctx.stack.opening == P_PAR_OPEN || ctx.stack.opening == P_BRACKET_OPEN)
 			{
 				//this expression block ends here
 				if (expressions.empty()) {
@@ -177,25 +177,23 @@ void peek_unary_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end
 	if (it == end)
 		return;
 
-	context.stack.assign_to_stack_if_possible(it);
+	//if (context.stack.assign_to_stack_if_possible(it))
+	//	return;
 
-	if (context.stack.time_to_exit())
-		return;
+	//if (context.stack.time_to_exit())
+	//	return;
 
 	if (it->get()->is_punctuation() == false)
 		return;
 
 	auto ptr = dynamic_cast<punctuation_token_t*>(it->get());
 	
-	if (ptr->is_operator(P_PAR_OPEN)) //parentheses are the operand, so go to next function
+	if (ptr->is_operator(P_PAR_OPEN) || (ptr->is_operator(P_BRACKET_OPEN))) //parentheses are the operand, so go to next function
 		return;
 
 	if (bad_unary_operator(ptr->punc))
 		throw linting_error(it->get(), "expected an expression instead of '%s'", ptr->string.c_str());
 
-	if (!is_unary_operator(ptr->punc)) {
-		return;
-	}
 	auto func = evaluation_functions::find_unary_function(ptr->punc);
 
 	context.operators.push_back({ .priority = ptr->priority, .punc = ptr->punc, .eval=reinterpret_cast<void*>(func), .type = operator_type::UNARY});
@@ -215,9 +213,7 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 	if (it->get()->is_punctuation()) {
 		if (it->get()->is_operator(P_PAR_OPEN)) {
 
-			int random = rand() % 127;
-			std::cout << "eval start " << random << '\n';
-			
+
 			std::advance(it, 1);
 			expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
 			block->next = std::make_unique<expression_block>();
@@ -225,7 +221,6 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 			if (results.num_evaluations > 1) {
 				throw linting_error(results.it->get(), "expected one expression instead of %u", (unsigned __int64)results.num_evaluations);
 			}
-			std::cout << "eval end " << random << '\n';
 			it = results.it;
 
 			context.stack.stack.num_close++;
@@ -233,6 +228,18 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 
 			std::advance(it, 1);
 			return;
+		}
+		else if (it->get()->is_operator(P_BRACKET_OPEN)) 
+		{
+			std::advance(it, 1);
+			expression_token_stack stack(P_BRACKET_OPEN, P_BRACKET_CLOSE);
+			block->next = std::make_unique<expression_block>();
+			auto results = evaluate_expression_sanity(it, end, block->next, stack);
+
+			std::cout << "numEvals: " << results.num_evaluations << '\n';
+
+			throw linting_error(it->get(), "yoooo");
+
 		}
 
 		throw linting_error(it->get(), "expected an identifier instead of '%s'", it->get()->string.c_str());
@@ -393,7 +400,6 @@ precedence_results get_lowest_precedence(operatorlist::iterator& itr1, const ope
 	precedence_results results{ itr1, 0 };
 	
 	while (itr1 != end && itr1->type != operator_type::STANDARD) {
-		std::cout << "hiii\n";
 		std::advance(itr1, 1);
 	}
 
@@ -414,7 +420,6 @@ precedence_results get_lowest_precedence(operatorlist::iterator& itr1, const ope
 		std::advance(itr1, 1);
 
 		while (itr1 != end && itr1->type != operator_type::STANDARD) {
-			std::cout << "hii\n";
 			std::advance(itr1, 1);
 		}
 

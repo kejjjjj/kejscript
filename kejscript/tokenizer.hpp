@@ -93,25 +93,33 @@ struct expression_token_stack
 {
 	expression_token_stack() = default;
 	expression_token_stack(punctuation_e open_punc, punctuation_e close_punc) : opening(open_punc), closing(close_punc), stack(1, 0) {}
-	void assign_to_stack_if_possible(ListTokenPtr::iterator& it) noexcept {
+	bool assign_to_stack_if_possible(ListTokenPtr::iterator& it) noexcept {
 
 		if (time_to_exit())
-			return;
+			return false;
 
 		auto token = it->get();
 
 		if (!token->is_punctuation())
-			return;
+			return false;
 
 		const auto p = dynamic_cast<const punctuation_token_t*>(token);
 
 		if (p->punc == opening) {
 			stack.num_open++;
+			LOG("incrementing " << punctuations[p->punc].identifier << " to " << stack.num_open << " at " 
+				<< it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
+			return true;
 		}
 		else if (p->punc == closing) {
 			stack.num_close++;
+			LOG("incrementing " << punctuations[p->punc].identifier << " to " << stack.num_close << " at "
+				<< it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
+
 			location = it;
+			return true;
 		}
+		return false;
 	}
 
 	bool time_to_exit() const noexcept {
@@ -142,7 +150,8 @@ enum class code_block_e : uint8_t
 	WHILE,
 	FN_CALL,
 	EXPRESSION,
-	RETURN
+	RETURN,
+	INITIALIZER_LIST
 };
 struct function_block;
 struct code_block
@@ -213,7 +222,7 @@ struct expression_block : public code_block
 	bool execute(struct function_stack* stack) override;
 
 	std::unique_ptr<ast_node> ast_tree;
-	std::unique_ptr<expression_block> next; //indicates that there was more than one evaluation (function call arguments)
+	std::unique_ptr<expression_block> next; //indicates that there was more than one evaluation (function call arguments or initializer lists)
 	code_block_e type() const noexcept(true) override { return code_block_e::EXPRESSION; }
 
 };
@@ -253,6 +262,16 @@ struct return_statement : public code_block
 	bool execute(struct function_stack* stack) override;
 	std::unique_ptr<expression_block> expression; //this can be a nullptr if returning void
 	code_block_e type() const noexcept(true) override { return code_block_e::RETURN; }
+
+};
+struct initializer_list : public code_block
+{
+	initializer_list() = default;
+	~initializer_list() = default;
+	bool execute(struct function_stack* stack) override {};
+	std::unique_ptr<initializer_list> next;
+	std::unique_ptr<expression_block> expression;
+	code_block_e type() const noexcept(true) override { return code_block_e::INITIALIZER_LIST; }
 
 };
 struct validation_expression
