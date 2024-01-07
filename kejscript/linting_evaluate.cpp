@@ -32,8 +32,6 @@ void linting_data::validate(ListTokenPtr::iterator it, ListTokenPtr::iterator en
 	if (!active_scope->is_global_scope())
 		throw linting_error((--end)->get(), "expected to find a '}'");
 
-	test_all_undefined();
-
 	//find main entry 
 	auto entry = function_table.find("main");
 

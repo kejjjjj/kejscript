@@ -5,7 +5,7 @@
 [[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(
 	ListTokenPtr::iterator it, 
 	[[maybe_unused]]ListTokenPtr::iterator& end, 
-	[[maybe_unused]] l_expression_context& context)
+	[[maybe_unused]] expression_context& context)
 {
 	throw linting_error(it->get(), "don't do subscript yet!!!");
 	////check the next token
@@ -36,8 +36,8 @@
 [[nodiscard]] ListTokenPtr::iterator evaluate_function_call_sanity(
 	ListTokenPtr::iterator it, 
 	ListTokenPtr::iterator& end, 
-	[[maybe_unused]] l_expression_context& context, 
-	singular* s, const std::string& target_func)
+	[[maybe_unused]] expression_context& context, 
+	singular* s)
 {
 	//check the next token
 	if (VECTOR_PEEK(it, 1, end) == false) {
@@ -49,7 +49,7 @@
 	std::advance(it, 1);
 
 	s->callable = std::make_unique<function_call>();
-	s->callable->target = linting_data::getInstance().get_function(target_func)->second.get();
+	s->callable->target = linting_data::getInstance().get_function(context.identifier)->second.get();
 	auto& call_block = s->callable;
 
 	//parse the arguments

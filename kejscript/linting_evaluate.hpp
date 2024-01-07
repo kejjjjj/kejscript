@@ -19,7 +19,7 @@ struct linting_data
 {
 	static linting_data& getInstance() { static linting_data d; return d; }
 	linting_scope* active_scope = 0;
-	function_block* current_function;
+	function_block* current_function = 0;
 	ListTokenPtr* tokens = 0;
 	std::unordered_map<std::string, function_def> existing_funcs;
 	void validate(ListTokenPtr::iterator it, ListTokenPtr::iterator to);
@@ -42,30 +42,7 @@ struct linting_data
 		
 	}
 
-	void test_all_undefined() {
-
-		for (auto& undefined_var : undefined_variables) {
-
-			const auto& function = function_table.find(undefined_var->identifier);
-
-			if (function == function_table.end())
-				throw linting_error(undefined_var->location->get(), "unknown function '%s'", undefined_var->identifier.c_str());
-
-			if (undefined_var->num_args != function->second->def.parameters.size()) {
-				throw linting_error(undefined_var->location->get(), "no instance of the function '%s' accepts %i arguments", undefined_var->identifier.c_str(), (unsigned __int64)undefined_var->num_args);
-
-			}
-
-			undefined_var->target->callable->target = function->second.get();
-			
-		}
-		undefined_variables.clear();
-	}
-	//code_block* current_block = nullptr; //points to the code block the program is working with at the moment
 	std::unordered_map<std::string, std::unique_ptr<function_block>> function_table;
-	std::list<std::unique_ptr<undefined_variable>> undefined_variables;
-
-	//NO_COPY_CONSTRUCTOR(linting_data);
 };
 
 struct linting_expression
@@ -73,15 +50,6 @@ struct linting_expression
 	token_t* identifier = 0;
 };
 
-struct l_expression_context
-{
-	l_expression_context(const expression_token_stack& _stack) : stack(_stack) {}
-
-	//linting_expression expression;
-	//std::vector<linting_expression> expressions;
-	expression_token_stack stack;
-	NO_COPY_CONSTRUCTOR(l_expression_context);
-};
 
 struct l_expression_results
 {
@@ -101,14 +69,13 @@ void evaluate_return_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& 
 void evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, const std::unique_ptr<conditional_block>&);
 void evaluate_else_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
-using singularlist = std::list<std::unique_ptr<singular>>;
 
-[[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(ListTokenPtr::iterator begin, ListTokenPtr::iterator& end, l_expression_context& context);
+[[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(ListTokenPtr::iterator begin, ListTokenPtr::iterator& end, expression_context& context);
 [[nodiscard]] ListTokenPtr::iterator  evaluate_function_call_sanity(
 	ListTokenPtr::iterator begin,
 	ListTokenPtr::iterator& end,
-	l_expression_context& context,
-	singular* s, const std::string& target_func);
+	expression_context& context,
+	singular* s);
 
 
 

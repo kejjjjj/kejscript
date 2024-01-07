@@ -10,30 +10,42 @@ bool expression_block::execute(function_stack* stack)
 	evaluate_expression(owner, stack, ast_tree);
 	return false;
 }
+void evaluate_unary(operand& target, const nodeptr& node)
+{
+	if (node->is_unary() == false)
+		return;
 
+	auto& op = node->get_operator();
+
+	reinterpret_cast<evaluation_functions::unaryfuncptr>(op.eval)(target);
+	return evaluate_unary(target, node->left);
+
+}
 std::unique_ptr<operand> evaluate_expression(function_block* owner, function_stack* stack, const nodeptr& node)
 {
+	if (node->is_unary()) {
+		auto expression = evaluate_expression(owner, stack, node->left);
+		evaluate_unary(*expression.get(), node);
+		return std::move(expression);
+	}
 
 	if (node->is_leaf()) {
 
 		//if it is a function call:
-		auto& function = node->contents->callable;
+		auto& leaf = node->get_operand();
+		auto& function = leaf->callable;
 
 		if (function) {
 			expression_block* arg = function->arguments.get();
-			//LOG("calling " << function->target << " from " << owner << '\n');
 			std::list<std::unique_ptr<operand>> args;
-
 			while (arg) {
-
 				args.push_back(evaluate_expression(owner, stack, arg->ast_tree));
 				arg = arg->next.get();
 			}
-
 			return call_function(owner, function->target, args, stack);
 		}		
 
-		return std::make_unique<operand>(*node->contents.get(), stack);
+		return std::make_unique<operand>(*leaf.get(), stack);
 	}
 
 	auto left_operand = evaluate_expression(owner, stack, node->left);
@@ -45,9 +57,8 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 	//	throw runtime_error(right_operand->_operand, "right operand does not have a value");
 	//}
 
-	//std::cout << "evaluating: " << right_operand->get_value()->value.size() << '\n';
-
-
-	auto& op = std::get<_operator>(node->contents->value);
-	return reinterpret_cast<evaluation_functions::funcptr>(op.eval)(*left_operand, *right_operand);
+	auto& op = node->get_operator();
+	auto ret = reinterpret_cast<evaluation_functions::funcptr>(op.eval)(*left_operand, *right_operand);
+	ret->_operand = right_operand->_operand;
+	return ret;
 }

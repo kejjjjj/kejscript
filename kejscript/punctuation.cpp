@@ -2,7 +2,7 @@
 
 bool is_unary_operator(const punctuation_e p)
 {
-	if (p == P_ADD || p == P_SUB)
+	if (p == P_ADD || p == P_SUB || p == P_INCREMENT)
 		return true;
 
 	return false;

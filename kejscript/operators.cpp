@@ -3,6 +3,7 @@
 #include "runtime_exception.hpp"
 
 std::unordered_map<punctuation_e, evaluation_functions::funcptr>  evaluation_functions::eval_functions;
+std::unordered_map<punctuation_e, evaluation_functions::unaryfuncptr> evaluation_functions::unary_functions;
 
 void evaluation_functions::initialize_functions()
 {
@@ -20,6 +21,8 @@ void evaluation_functions::initialize_functions()
 	eval_functions.insert({ P_MULTIPLICATION, multiplication });
 
 	eval_functions.insert({ P_EQUALITY, equality });
+
+	unary_functions.insert({ P_INCREMENT, increment });
 
 	once = false;
 
@@ -190,4 +193,48 @@ void evaluation_functions::assign_to_lvalue(variable* var, operand& right)
 	}
 	var->initialized = true;
 	return;
+}
+
+
+
+
+
+
+
+
+
+
+//UNARY
+void evaluation_functions::increment(operand& op)
+{
+
+	if (op.type != operand::Type::LVALUE)
+		throw runtime_error(op._operand, "cannot increment a non-lvalue");
+
+	if (std::get<variable*>(op.value)->initialized == false) {
+		throw runtime_error(op._operand, "cannot increment an uninitialized variable");
+	}
+
+	auto value = op.get_value();
+
+	if(value->is_integral() == false)
+		throw runtime_error(op._operand, "incrementing non-integral types is not allowed");
+
+
+	switch (value->type()) {
+	case datatype_e::bool_t:
+		throw runtime_error(op._operand, "incrementing a bool value is not allowed");
+	case datatype_e::int_t:
+		++(*reinterpret_cast<int32_t*>(value->value.data()));
+		break;
+	case datatype_e::double_t:
+		++(*reinterpret_cast<double*>(value->value.data()));
+		break;
+	default:
+		throw runtime_error(op._operand, "an unexpected type");
+	}
+
+
+
+
 }

@@ -23,7 +23,7 @@ enum OperatorPriority : char
 };
 enum punctuation_e : char
 {
-	
+
 	P_ADD,
 	P_SUB,
 
@@ -34,6 +34,8 @@ enum punctuation_e : char
 	P_EQUALITY,
 	P_MODULO,
 	P_MULTIPLICATION,
+
+	P_INCREMENT,
 
 	P_PAR_OPEN,
 	P_PAR_CLOSE,
@@ -62,6 +64,7 @@ const static punctuation_t punctuations[] =
 	//needs to be sorted from longest string to shortest
 
 	{"==", P_EQUALITY, RELATIONAL },
+	{"++", P_INCREMENT, UNARY},
 
 	{"+", P_ADD, ADDITIVE},
 	{"-", P_SUB, ADDITIVE},

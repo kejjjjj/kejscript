@@ -10,7 +10,7 @@ operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr
 
 	static_assert(std::variant_size_v<decltype(value)> == 2, "No alternatives in the variant");
 
-	auto& oper = std::get<validation_expression>(expr.value);
+	auto& oper = expr.v;
 
 	if (oper.type == validation_expression::Type::OTHER) {
 		const auto& table = stack->variables;

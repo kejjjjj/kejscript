@@ -127,7 +127,6 @@ struct expression_token_stack
 	size_t num_evaluations = 0; //the number of recursive calls to evaluate expression
 
 };
-
 struct function_def
 {
 	std::vector<std::string> parameters;
@@ -191,6 +190,21 @@ struct function_block
 	bool entrypoint = false;
 	NO_COPY_CONSTRUCTOR(function_block);
 };
+
+//this stuff should be elsewhere i am pretty sure!
+enum class operator_type : char
+{
+	UNARY,
+	STANDARD,
+	POSTFIX
+};
+struct _operator {
+	OperatorPriority priority = OperatorPriority::FAILURE;
+	punctuation_e punc = punctuation_e::P_UNKNOWN;
+	void* eval = 0;
+	operator_type type = operator_type::STANDARD;
+	token_t* token = 0;
+};
 struct expression_block : public code_block
 {
 	expression_block() = default;
@@ -241,19 +255,13 @@ struct return_statement : public code_block
 	code_block_e type() const noexcept(true) override { return code_block_e::RETURN; }
 
 };
-//this stuff should be elsewhere i am pretty sure!
-struct _operator {
-	OperatorPriority priority = OperatorPriority::FAILURE;
-	punctuation_e punc = punctuation_e::P_UNKNOWN;
-	void* eval = 0;
-};
 struct validation_expression
 {
 	enum Type
 	{
 		LITERAL,
 		OTHER
-	}type;
+	}type = OTHER;
 	struct literal
 	{
 		enum literal_type
@@ -272,96 +280,112 @@ struct validation_expression
 	};
 	struct other
 	{
-		std::list<_operator> prefix;
-		std::list<_operator> postfix;
 		std::string identifier;
 		size_t variable_index = 0; //for quick access
 
 	};
-
+	validation_expression() = default;
 	validation_expression(const literal& l) : value(l), type(LITERAL) {};
 	validation_expression(const other& o) : value(o), type(OTHER) {};
 
-	std::variant<literal, other> value;
-};
-
-template<typename T>
-constexpr validation_expression::literal token_2_literal()
-{
-	switch (T) {
-	case tokentype_t::NUMBER_LITERAL:
-		return validation_expression::literal::NUMBER_LITERAL;
-	case tokentype_t::FLOAT_LITERAL:
-		return validation_expression::literal::FLOAT_LITERAL;
-	case tokentype_t::_TRUE:
-		return validation_expression::literal::_TRUE;
-	case tokentype_t::_FALSE:
-		return validation_expression::literal::_FALSE;
-		
-	}
-
-	return validation_expression::literal::CHAR_LITERAL;
-
-}
-struct singular {
-
-	enum class Type : char
-	{
-		OPERAND,
-		OPERATOR
-	}type = Type::OPERAND;
-
-	singular() = default;
-	singular(const _operator& op) : value(op), type(Type::OPERATOR) {}
-	singular(const validation_expression& e) : value(e), type(Type::OPERAND) {}
-
-	void make_operator(const _operator& op)
-	{
-		value = op;
-		type = Type::OPERATOR;
-	}
-	void make_operand(const validation_expression& e)
+	void make_literal(const validation_expression::literal& e)
 	{
 		value = e;
-		type = Type::OPERAND;
+		type = validation_expression::LITERAL;
 	}
+	void make_other(const validation_expression::other& e)
+	{
+		value = e;
+		type = validation_expression::OTHER;
+	}
+	std::variant<literal, other> value;
+};
+struct singular {
+	singular() = default;
+	singular(const validation_expression::literal& e) : v(e) {}
+	singular(const validation_expression::other& e) : v(e) {}
 
+	void make_literal(const validation_expression::literal& e) { v.make_literal(e); }
+	void make_other(const validation_expression::other& e){ v.make_other(e); }
 
-	std::variant<_operator, validation_expression> value;
+	validation_expression v;
 	token_t* token = nullptr;
 	function_block* owner = 0; // the function that owns this operand
 	std::unique_ptr<function_call> callable;
 
+	std::unique_ptr<ast_node> parentheses;
+
 	NO_COPY_CONSTRUCTOR(singular);
 	//ListTokenPtr::iterator location;
 };
-
+using singularlist = std::list<std::unique_ptr<singular>>;
+using operatorlist = std::list<_operator>;
 using nodeptr = std::unique_ptr<ast_node>;
+
 struct ast_node
 {
 	ast_node() = default;
 
+	enum Type
+	{
+		OPERATOR,
+		OPERAND,
+	}type=OPERATOR;
+
 	nodeptr left;
 	nodeptr right;
-	std::unique_ptr<singular> contents = nullptr;
-	bool is_leaf() const noexcept { return !left && !right; }
-	void print_tree(int depth = 0, bool newline = true) const {
-
-		for (int i = 0; i < depth; ++i) {
-			std::cout << "  ";
-		}
-
-		if (contents) {
-			std::cout << contents->token->string << (newline ? "\n" : "");
-		}
-
-		if (left) {
-			left->print_tree(depth - 1, false);
-		}
-		if (right) {
-			right->print_tree(depth + 1, true);
-		}
+	std::variant<std::unique_ptr<singular>, _operator> contents = nullptr;
+	bool is_leaf() const noexcept { return type == OPERAND; }
+	bool is_unary() const noexcept { return type == OPERATOR && std::get<_operator>(contents).type == operator_type::UNARY; }
+	void make_operator(const _operator& op) {
+		contents = op;
+		type = OPERATOR;
+	}
+	void make_operand(std::unique_ptr<singular>& s) {
+		contents = std::move(s);
+		type = OPERAND;
 	}
 
+	constexpr std::unique_ptr<singular>& get_operand()
+	{
+		return std::get<std::unique_ptr<singular>>(contents);
+	}
+	constexpr _operator& get_operator()
+	{
+		return std::get<_operator>(contents);
+	}
+
+
+	//void print_tree(int depth = 0, bool newline = true) const {
+
+	//	for (int i = 0; i < depth; ++i) {
+	//		std::cout << "  ";
+	//	}
+
+	//	if (contents) {
+	//		std::cout << contents->token->string << (newline ? "\n" : "");
+	//	}
+
+	//	if (left) {
+	//		left->print_tree(depth - 1, false);
+	//	}
+	//	if (right) {
+	//		right->print_tree(depth + 1, true);
+	//	}
+	//}
+
 	NO_COPY_CONSTRUCTOR(ast_node);
+};
+
+struct expression_context
+{
+	expression_context(const expression_token_stack& _stack) : stack(_stack) {}
+	expression_token_stack stack;
+
+	std::unique_ptr<expression_block> block;
+	singularlist ex;
+	std::list<_operator> operators;
+	std::string identifier;
+
+	NO_COPY_CONSTRUCTOR(expression_context);
 };

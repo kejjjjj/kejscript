@@ -80,6 +80,7 @@ struct bool_dt : public datatype
 	size_t size_of() const noexcept(true) override { return sizeof(bool); };
 	datatype_e type() const noexcept(true) override { return datatype_e::bool_t; }
 	const bool get() const noexcept { return *reinterpret_cast<const bool*>(value.data()); }
+	void set(bool v) { *reinterpret_cast<bool*>(value.data()) = v; }
 	std::string type_str() const noexcept(true) override { return "bool"; }
 	std::string value_str() const noexcept(true) override { return get() == true ? "true" : "false"; }
 	bool is_integral() const noexcept(true) override { return true; }
@@ -123,6 +124,7 @@ struct integer_dt : public datatype
 	std::string value_str() const noexcept(true) override { return std::to_string(get()); }
 	bool is_integral() const noexcept(true) override { return true; }
 	bool bool_convertible() const noexcept(true) override { return true; }
+	void set(int32_t v) { *reinterpret_cast<int32_t*>(value.data()) = v; }
 
 
 	integer_dt operator+(const integer_dt& other) const {
@@ -170,6 +172,7 @@ struct double_dt : public datatype
 	std::string value_str() const noexcept(true) override { return std::to_string(get()); }
 	bool is_integral() const noexcept(true) override { return false; }
 	bool bool_convertible() const noexcept(true) override { return true; }
+	void set(double v) { *reinterpret_cast<double*>(value.data()) = v; }
 
 	double_dt operator+(const double_dt& other) const {
 		auto result = this->get() + other.get();
