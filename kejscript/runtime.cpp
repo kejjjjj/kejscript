@@ -35,13 +35,10 @@ void runtime::execute()
 	main_stack = std::unique_ptr<function_stack>(ptr);
 
 
-	LOG("\n\n-----returning from: " << entry_point->def.identifier << "-----\n\n");
+	//LOG("\n\n-----returning from: " << entry_point->def.identifier << "-----\n\n");
 
 	for (auto& v : main_stack->variables) {
-		if (v->value)
-			std::cout << (std::format("{}<{}> = {}\n", v->identifier, v->value->type_str(), v->value->value_str()));
-		else
-			std::cout << (std::format("{}<uninitialized>\n", v->identifier));
+		v->print();
 	}
 	std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
 

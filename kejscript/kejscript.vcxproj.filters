@@ -99,6 +99,9 @@
     <ClCompile Include="return.cpp">
       <Filter>Source Files\runtime</Filter>
     </ClCompile>
+    <ClCompile Include="variable.cpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.hpp">

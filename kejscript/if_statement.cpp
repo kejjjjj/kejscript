@@ -12,7 +12,7 @@ bool conditional_block::execute(function_stack* stack)
 		return eval_block(stack);
 	}
 		
-	const auto value = evaluate_expression(owner, stack, condition->ast_tree);
+	const auto value = evaluate_expression(owner, stack, condition->expression_ast);
 
 	if (value->bool_convertible() == false)
 		throw runtime_error(value->_operand, "the expression must be convertible to a boolean type");

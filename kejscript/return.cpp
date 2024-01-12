@@ -10,7 +10,7 @@ bool return_statement::execute(function_stack* stack)
 		return true;
 	}
 
-	std::unique_ptr<operand> value = evaluate_expression(owner, stack, expression->ast_tree);
+	std::unique_ptr<operand> value = evaluate_expression(owner, stack, expression->expression_ast);
 	
 	//const auto result = datatype::create_type<integer_dt, int>(*value->get_value());
 	//const auto expression_condition = result.get();

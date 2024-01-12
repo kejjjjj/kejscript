@@ -158,6 +158,7 @@
     <ClCompile Include="runtime_expression.cpp" />
     <ClCompile Include="script.cpp" />
     <ClCompile Include="tokenizer.cpp" />
+    <ClCompile Include="variable.cpp" />
     <ClCompile Include="while_statement.cpp" />
     <ClCompile Include="while_statement_sanity.cpp" />
   </ItemGroup>

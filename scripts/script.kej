@@ -1,4 +1,5 @@
 fn main()
 {
-	def a = ++(a = 2 * (3 + 5));
+	def poo = [ [ 1, 2, 3 ], [2, [4, 5] ], 24];
+	def wtf = [poo, poo];
 }

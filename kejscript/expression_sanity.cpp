@@ -48,9 +48,17 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, e
 
 	//an expression with parentheses is the next one
 	if (context.block->next) {
-		s->parentheses = std::move(context.block->next->ast_tree);
+		s->parentheses = std::move(context.block->next->expression_ast);
 		context.ex.push_back(std::move(s));
 		context.block->next.reset();
+		return;
+	}
+	else if (context.block->list)
+	{
+		s->token = identifier_it->get();
+		s->initializers = std::move(context.block->list);
+		context.ex.push_back(std::move(s));
+		context.block->list.reset();
 		return;
 	}
 
@@ -127,12 +135,15 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 					throw linting_error(it->get(), "an empty expression is not allowed");
 				}
 
-				block->ast_tree = generate_ast(expressions, operators);
+				block->expression_ast = generate_ast(expressions, operators);
 				block->next = std::make_unique<expression_block>();
+
+				_block = std::move(ctx.block);
+
 
 				++it; //skip the comma
 				ctx.stack.num_evaluations += 1;
-				return evaluate_expression_sanity(it, end, block->next, ctx.stack);
+				return evaluate_expression_sanity(it, end, _block->next, ctx.stack);
 			}
 
 			//a random comma
@@ -164,7 +175,7 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 
 
 	//generate the abstract syntax tree
-	block->ast_tree = generate_ast(expressions, operators);
+	block->expression_ast = generate_ast(expressions, operators);
 
 	//if there were parentheses in the expression, insert them into the leaves
 
@@ -233,12 +244,22 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 		{
 			std::advance(it, 1);
 			expression_token_stack stack(P_BRACKET_OPEN, P_BRACKET_CLOSE);
-			block->next = std::make_unique<expression_block>();
-			auto results = evaluate_expression_sanity(it, end, block->next, stack);
+			block->list = std::make_unique<initializer_list>();
+			auto list = block->list.get();
+			list->expression = std::make_unique<expression_block>();
+			auto results = evaluate_expression_sanity(it, end, list->expression, stack);
 
 			std::cout << "numEvals: " << results.num_evaluations << '\n';
 
-			throw linting_error(it->get(), "yoooo");
+			it = results.it;
+
+			context.stack.stack.num_close++;
+			context.stack.location = it;
+
+			std::advance(it, 1);
+			return;
+
+			//throw linting_error(it->get(), "yoooo");
 
 		}
 

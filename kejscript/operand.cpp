@@ -2,13 +2,14 @@
 #include "runtime_exception.hpp"
 #include "runtime.hpp"
 #include "operators.hpp"
+#include "runtime_expression.hpp"
 
 operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr.token)
 {
 	using rvalue = std::unique_ptr<datatype>;
 
 
-	static_assert(std::variant_size_v<decltype(value)> == 2, "No alternatives in the variant");
+	//static_assert(std::variant_size_v<decltype(value)> == 2, "No alternatives in the variant");
 
 	auto& oper = expr.v;
 
@@ -48,6 +49,12 @@ operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr
 
 
 }
+void operand::make_array()
+{
+	value = std::vector<operand_ptr>();
+	type = Type::RVALUE_ARRAY;
+}
+
 void operand::cast_weaker_operand(datatype_e this_type, datatype_e other_type, operand& other)
 {
 	operand* stronger = nullptr;
@@ -172,11 +179,14 @@ bool operand::bool_convertible()
 	if (lval->initialized == false)
 		throw runtime_error(_operand, "use of an uninitialized variable '%s'", lval->identifier.c_str());
 
+	while (lval->is_reference())
+		lval = std::get<variable*>(lval->value);
+
 	//value.emplace(1);
 
-	auto dtype = lval->value.get();
+	auto dtype = std::get<datatype_ptr>(lval->value).get();
 
-	switch (lval->value->type()) {
+	switch (dtype->type()) {
 	case datatype_e::bool_t:
 		value = datatype::cast<bool_dt>(dtype);
 		break;
@@ -211,10 +221,13 @@ std::unique_ptr<operand> operand::create_copy()
 }
 datatype* operand::get_value()
 {
-	return type == Type::RVALUE ? std::get<rvalue>(value).get() : std::get<variable*>(value)->value.get();
-}
-std::unique_ptr<datatype>& operand::get_value_move()
-{
-	return type == Type::RVALUE ? std::get<rvalue>(value) : std::get<variable*>(value)->value;
+	if (type == Type::RVALUE)
+		return std::get<rvalue>(value).get();
 
+	auto v = std::get<variable*>(value);
+
+	while (v->is_reference())
+		v = std::get<variable*>(v->value);
+
+	return type == Type::RVALUE ? std::get<rvalue>(value).get() : std::get<datatype_ptr>(v->value).get();
 }

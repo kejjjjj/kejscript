@@ -67,6 +67,9 @@ protected:
 	/*std::vector<char> value;*/
 
 };
+
+using datatype_ptr = std::unique_ptr<datatype>;
+
 using rvalue = std::unique_ptr<datatype>;
 struct bool_dt : public datatype
 {

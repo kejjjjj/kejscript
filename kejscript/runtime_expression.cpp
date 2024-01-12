@@ -7,7 +7,7 @@
 
 bool expression_block::execute(function_stack* stack)
 {
-	evaluate_expression(owner, stack, ast_tree);
+	evaluate_expression(owner, stack, expression_ast);
 	return false;
 }
 void evaluate_unary(operand& target, const nodeptr& node)
@@ -21,6 +21,21 @@ void evaluate_unary(operand& target, const nodeptr& node)
 	return evaluate_unary(target, node->left);
 
 }
+std::unique_ptr<operand> evaluate_initializer_list(function_block* owner, function_stack* stack, const initializer_list* list)
+{
+	auto rvalue_array = std::make_unique<operand>();
+	rvalue_array->make_array();
+
+	auto current = list->expression.get();
+	while (current) {
+
+		const nodeptr& target = current->list ? current->list->expression->expression_ast : current->expression_ast;
+		auto result = evaluate_expression(owner, stack, target);
+		rvalue_array->insert_element(result);
+		current = current->next.get();
+	}
+	return rvalue_array;
+}
 std::unique_ptr<operand> evaluate_expression(function_block* owner, function_stack* stack, const nodeptr& node)
 {
 	if (node->is_unary()) {
@@ -31,6 +46,12 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 
 	if (node->is_leaf()) {
 
+		if (node->is_list()) {
+			auto ret = evaluate_initializer_list(owner, stack, node->get_list().get());
+			ret->_operand = std::get<std::unique_ptr<singular>>(node->contents)->token;
+			return ret;
+		}
+
 		//if it is a function call:
 		auto& leaf = node->get_operand();
 		auto& function = leaf->callable;
@@ -39,7 +60,7 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 			expression_block* arg = function->arguments.get();
 			std::list<std::unique_ptr<operand>> args;
 			while (arg) {
-				args.push_back(evaluate_expression(owner, stack, arg->ast_tree));
+				args.push_back(evaluate_expression(owner, stack, arg->expression_ast));
 				arg = arg->next.get();
 			}
 			return call_function(owner, function->target, args, stack);
@@ -59,6 +80,10 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 
 	auto& op = node->get_operator();
 	auto ret = reinterpret_cast<evaluation_functions::funcptr>(op.eval)(*left_operand, *right_operand);
-	ret->_operand = right_operand->_operand;
+	if(right_operand->_operand)
+		ret->_operand = right_operand->_operand;
+	else if (left_operand->_operand)
+		ret->_operand = left_operand->_operand;
+
 	return ret;
 }

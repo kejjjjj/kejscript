@@ -72,7 +72,7 @@
 	//LOG("calling '" << context.expression.identifier->string << "' with " << num_args << " arguments!\n");
 
 	context.stack.stack.num_close++;
-	++it;
+	//++it;
 	context.stack.location = it;
 	
 	

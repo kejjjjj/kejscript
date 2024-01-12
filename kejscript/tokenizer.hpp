@@ -214,17 +214,22 @@ struct _operator {
 	operator_type type = operator_type::STANDARD;
 	token_t* token = 0;
 };
+struct initializer_list;
 struct expression_block : public code_block
 {
 	expression_block() = default;
 	~expression_block() = default;
 
 	bool execute(struct function_stack* stack) override;
-
-	std::unique_ptr<ast_node> ast_tree;
-	std::unique_ptr<expression_block> next; //indicates that there was more than one evaluation (function call arguments or initializer lists)
+	std::unique_ptr<initializer_list> list; //an initializer list
+	std::unique_ptr<ast_node> expression_ast; //expression tree
+	std::unique_ptr<expression_block> next; //indicates that there was more than one evaluation (function call arguments)
 	code_block_e type() const noexcept(true) override { return code_block_e::EXPRESSION; }
 
+};
+struct initializer_list
+{
+	std::unique_ptr<expression_block> expression; //should be empty when this is not the most bottom layer
 };
 struct conditional_block : public code_block
 {
@@ -262,16 +267,6 @@ struct return_statement : public code_block
 	bool execute(struct function_stack* stack) override;
 	std::unique_ptr<expression_block> expression; //this can be a nullptr if returning void
 	code_block_e type() const noexcept(true) override { return code_block_e::RETURN; }
-
-};
-struct initializer_list : public code_block
-{
-	initializer_list() = default;
-	~initializer_list() = default;
-	bool execute(struct function_stack* stack) override {};
-	std::unique_ptr<initializer_list> next;
-	std::unique_ptr<expression_block> expression;
-	code_block_e type() const noexcept(true) override { return code_block_e::INITIALIZER_LIST; }
 
 };
 struct validation_expression
@@ -333,7 +328,7 @@ struct singular {
 	std::unique_ptr<function_call> callable;
 
 	std::unique_ptr<ast_node> parentheses;
-
+	std::unique_ptr<initializer_list> initializers;
 	NO_COPY_CONSTRUCTOR(singular);
 	//ListTokenPtr::iterator location;
 };
@@ -356,6 +351,8 @@ struct ast_node
 	std::variant<std::unique_ptr<singular>, _operator> contents = nullptr;
 	bool is_leaf() const noexcept { return type == OPERAND; }
 	bool is_unary() const noexcept { return type == OPERATOR && std::get<_operator>(contents).type == operator_type::UNARY; }
+	bool is_list() const noexcept { return type == OPERAND && std::get<std::unique_ptr<singular>>(contents)->initializers; }
+	auto& get_list() { return std::get<std::unique_ptr<singular>>(contents)->initializers; }
 	void make_operator(const _operator& op) {
 		contents = op;
 		type = OPERATOR;
@@ -365,37 +362,11 @@ struct ast_node
 		type = OPERAND;
 	}
 
-	constexpr std::unique_ptr<singular>& get_operand()
-	{
-		return std::get<std::unique_ptr<singular>>(contents);
-	}
-	constexpr _operator& get_operator()
-	{
-		return std::get<_operator>(contents);
-	}
-
-
-	//void print_tree(int depth = 0, bool newline = true) const {
-
-	//	for (int i = 0; i < depth; ++i) {
-	//		std::cout << "  ";
-	//	}
-
-	//	if (contents) {
-	//		std::cout << contents->token->string << (newline ? "\n" : "");
-	//	}
-
-	//	if (left) {
-	//		left->print_tree(depth - 1, false);
-	//	}
-	//	if (right) {
-	//		right->print_tree(depth + 1, true);
-	//	}
-	//}
+	constexpr std::unique_ptr<singular>& get_operand(){	return std::get<std::unique_ptr<singular>>(contents);	}
+	constexpr _operator& get_operator(){	return std::get<_operator>(contents);	}
 
 	NO_COPY_CONSTRUCTOR(ast_node);
 };
-
 struct expression_context
 {
 	expression_context(const expression_token_stack& _stack) : stack(_stack) {}

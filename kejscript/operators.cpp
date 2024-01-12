@@ -69,12 +69,26 @@ std::unique_ptr<operand> evaluation_functions::arithmetic_subtraction(operand& l
 std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand, operand& right_operand)
 {
 
-	auto right_value = right_operand.lvalue_to_rvalue();
-
 	if (left_operand.type != operand::Type::LVALUE)
 		throw runtime_error(left_operand._operand, "cannot assign to a non-lvalue");
 	
+	
 	auto& v = std::get<variable*>(left_operand.value);
+
+	if (right_operand.type == operand::Type::RVALUE_ARRAY) {
+
+		auto& a = std::get<std::vector<operand_ptr>>(right_operand.value);
+
+		for (auto& var : a) {
+			v->insert_element(var.get());
+		}
+		v->initialized = true;
+
+		return create_lvalue(v);
+	}
+
+	auto right_value = right_operand.lvalue_to_rvalue();
+	v->arrayElements.clear();
 
 	switch (right_value->type()) {
 	case datatype_e::bool_t:
