@@ -8,15 +8,7 @@ void variable::insert_element(struct operand* val)
 
 	switch (val->type) {
 	case operand::Type::LVALUE:
-		
-		if (std::get<variable*>(val->value)->arrayElements.size()) {
-			var->make_reference(std::get<variable*>(val->value));
-		}
-		else {
-			//don't create references to non-objects
-			var = std::unique_ptr<variable>(std::get<variable*>(val->value));
-
-		}
+		var = std::unique_ptr<variable>(std::get<variable*>(val->value));
 		break;
 	case operand::Type::RVALUE:
 		var->value = std::move(std::get<datatype_ptr>(val->value));
@@ -53,16 +45,12 @@ void variable::print(size_t spaces)
 		arr->print(spaces + 1);
 	}
 
-	if (is_reference()) {
-		auto v = std::get<variable*>(value);
-		return v->print(spaces);
+
+	if (arrayElements.empty()) {
+		auto& v = std::get<std::unique_ptr<datatype>>(value);
+		std::cout << std::format("{}| <{}> ({})\n", prefix, v->type_str(), v->value_str());
 	}
-	else {
-		if (arrayElements.empty()) {
-			auto& v = std::get<std::unique_ptr<datatype>>(value);
-			std::cout << std::format("{}| <{}> ({})\n", prefix, v->type_str(), v->value_str());
-		}
-	}
+	
 
 
 }

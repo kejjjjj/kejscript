@@ -70,12 +70,12 @@
 	
 
 	//LOG("calling '" << context.expression.identifier->string << "' with " << num_args << " arguments!\n");
-
-	context.stack.stack.num_close++;
-	//++it;
-	context.stack.location = it;
+	if (context.stack.in_use() && context.stack.opening == P_PAR_OPEN) {
+		context.stack.stack.num_close++;
+		context.stack.location = it;
+	}
 	
-	
+	//std::advance(it, 1);
 
 	return it;
 }

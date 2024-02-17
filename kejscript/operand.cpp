@@ -179,9 +179,6 @@ bool operand::bool_convertible()
 	if (lval->initialized == false)
 		throw runtime_error(_operand, "use of an uninitialized variable '%s'", lval->identifier.c_str());
 
-	while (lval->is_reference())
-		lval = std::get<variable*>(lval->value);
-
 	//value.emplace(1);
 
 	auto dtype = std::get<datatype_ptr>(lval->value).get();
@@ -225,9 +222,6 @@ datatype* operand::get_value()
 		return std::get<rvalue>(value).get();
 
 	auto v = std::get<variable*>(value);
-
-	while (v->is_reference())
-		v = std::get<variable*>(v->value);
 
 	return type == Type::RVALUE ? std::get<rvalue>(value).get() : std::get<datatype_ptr>(v->value).get();
 }

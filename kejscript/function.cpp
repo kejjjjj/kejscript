@@ -33,6 +33,7 @@ std::unique_ptr<operand> call_function(
 
 			if(returned_value->type != operand::Type::RVALUE_ARRAY)
 				returned_value->lvalue_to_rvalue();
+
 			callee->return_value = 0;
 			return returned_value;
 

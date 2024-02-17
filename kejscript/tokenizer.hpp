@@ -49,6 +49,11 @@ struct token_t
 	size_t column = 0;
 	std::unique_ptr<std::vector<char>> value = nullptr;
 
+	std::string format_position() const
+	{
+		return std::format("[{}, {}]", line, column);
+	}
+
 	bool is_identifier() const noexcept(true) { return tt == tokentype_t::IDENTIFIER; }
 	bool is_reserved_keyword() const noexcept(true) { return tt > tokentype_t::IDENTIFIER; }
 	virtual bool is_operator(const punctuation_e punctuation) const noexcept;
@@ -116,6 +121,8 @@ struct expression_token_stack
 			LOG("incrementing " << punctuations[p->punc].identifier << " to " << stack.num_close << " at "
 				<< it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
 
+			LOG("changing location\n");
+
 			location = it;
 			return true;
 		}
@@ -127,11 +134,12 @@ struct expression_token_stack
 	}
 
 	bool not_in_use() const noexcept { return opening == P_UNKNOWN || closing == P_UNKNOWN; }
+	bool in_use() const noexcept { return opening != P_UNKNOWN && closing != P_UNKNOWN; }
 
 	token_stack stack;
 	punctuation_e opening = punctuation_e::P_UNKNOWN;
 	punctuation_e closing = punctuation_e::P_UNKNOWN;
-	ListTokenPtr::iterator location;
+	ListTokenPtr::iterator location = {};
 	size_t num_evaluations = 0; //the number of recursive calls to evaluate expression
 
 };

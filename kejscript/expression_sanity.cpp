@@ -128,7 +128,7 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 		if (it->get()->is_operator(punctuation_e::P_COMMA)) {
 			
 			//this condition means that we are currently parsing function arguments or parsing an initializer list
-			if (ctx.stack.not_in_use() == false && ctx.stack.opening == P_PAR_OPEN || ctx.stack.opening == P_BRACKET_OPEN)
+			if (ctx.stack.not_in_use() == false && (ctx.stack.opening == P_PAR_OPEN || ctx.stack.opening == P_BRACKET_OPEN))
 			{
 				//this expression block ends here
 				if (expressions.empty()) {
@@ -155,7 +155,8 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 
 		if (ctx.stack.time_to_exit()) {
 			it = ctx.stack.location;
-			LOG("returning to " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
+			LOG("returning to " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]"
+			<< punctuations[ctx.stack.opening].identifier << " to " << punctuations[ctx.stack.closing].identifier << '\n');
 			break;
 		}
 
@@ -224,7 +225,6 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 	if (it->get()->is_punctuation()) {
 		if (it->get()->is_operator(P_PAR_OPEN)) {
 
-
 			std::advance(it, 1);
 			expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
 			block->next = std::make_unique<expression_block>();
@@ -234,9 +234,10 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 			}
 			it = results.it;
 
-			context.stack.stack.num_close++;
-			context.stack.location = it;
-
+			if (context.stack.in_use()) {
+				context.stack.stack.num_close++;
+				context.stack.location = it;
+			}
 			std::advance(it, 1);
 			return;
 		}
@@ -249,12 +250,18 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 			list->expression = std::make_unique<expression_block>();
 			auto results = evaluate_expression_sanity(it, end, list->expression, stack);
 
+			if (results.num_evaluations == 0) {
+				throw linting_error(results.it->get(), "expected at least one expression");
+			}
+
 			std::cout << "numEvals: " << results.num_evaluations << '\n';
 
 			it = results.it;
 
-			context.stack.stack.num_close++;
-			context.stack.location = it;
+			if (context.stack.in_use()) {
+				context.stack.stack.num_close++;
+				context.stack.location = it;
+			}
 
 			std::advance(it, 1);
 			return;

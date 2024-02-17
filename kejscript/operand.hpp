@@ -20,9 +20,6 @@ struct operand
 	operand(singular& expr, struct function_stack* stack);
 	operand(variable* v) : value(v), type(Type::LVALUE) {}
 	operand(datatype_ptr&& expr) : value(std::move(expr)), type(Type::RVALUE) {}
-	~operand() {
-		//std::cout << "~operand()\n";
-	}
 
 	void insert_element(operand_ptr& ptr) {
 		std::get<std::vector<operand_ptr>>(value).push_back(std::move(ptr));

@@ -1,5 +1,9 @@
+fn add_2(val)
+{
+	return val + 2;
+}
+
 fn main()
 {
-	def poo = [ [ 1, 2, 3 ], [2, [4, 5] ], 24];
-	def wtf = [poo, poo];
+	def poo = [ [add_2(2), add_2(add_2(2)) ], 8 ];
 }
