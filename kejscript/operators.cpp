@@ -73,22 +73,18 @@ std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand,
 		throw runtime_error(left_operand._operand, "cannot assign to a non-lvalue");
 	
 	
-	auto& v = std::get<variable*>(left_operand.value);
+	auto& v = std::get<std::shared_ptr<variable>>(left_operand.value);
 
-	if (right_operand.type == operand::Type::RVALUE_ARRAY) {
+	if (auto obj = right_operand.is_object()) {
 
-		auto& a = std::get<std::vector<operand_ptr>>(right_operand.value);
-
-		for (auto& var : a) {
-			v->insert_element(var.get());
-		}
+		v->value.reset();
+		v->obj = obj;
 		v->initialized = true;
 
 		return create_lvalue(v);
 	}
 
 	auto right_value = right_operand.lvalue_to_rvalue();
-	v->arrayElements.clear();
 
 	switch (right_value->type()) {
 	case datatype_e::bool_t:
@@ -225,7 +221,7 @@ void evaluation_functions::increment(operand& op)
 	if (op.type != operand::Type::LVALUE)
 		throw runtime_error(op._operand, "cannot increment a non-lvalue");
 
-	if (std::get<variable*>(op.value)->initialized == false) {
+	if (std::get<std::shared_ptr<variable>>(op.value)->initialized == false) {
 		throw runtime_error(op._operand, "cannot increment an uninitialized variable");
 	}
 
@@ -247,8 +243,24 @@ void evaluation_functions::increment(operand& op)
 	default:
 		throw runtime_error(op._operand, "an unexpected type");
 	}
+}
+std::unique_ptr<operand> subscript(operand& op, operand& expression)
+{
+	auto obj = op.is_object();
 
+	if (!obj)
+		throw runtime_error(op._operand, "the [] operator can only be used on arrays");
 
+	if (expression.is_integral() == false)
+		throw runtime_error(op._operand, "the [] index must be integral");
 
+	int index = *reinterpret_cast<int*>(expression.get_value()->value.data());
+	auto size = static_cast<int>(obj->variables.size());
+
+	if (index < 0 || index >= size) {
+		throw runtime_error(op._operand, "the index '%s' is outside of the array bounds", std::to_string(index).c_str());
+	}
+
+	return create_lvalue(obj->variables[index]);
 
 }

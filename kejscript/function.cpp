@@ -17,13 +17,13 @@ std::unique_ptr<operand> call_function(
 	auto stack_ptr = unique_stack.get();
 	auto arg = args.begin();
 	for (const auto& param : callee->def.parameters) {
-		stack_ptr->variables.push_back(std::make_unique<variable>(param));
+		stack_ptr->variables.push_back(std::make_shared<variable>(param));
 		evaluation_functions::assign_to_lvalue(stack_ptr->variables.back().get(), *arg->get());
 		++arg;
 	}
 
 	for (auto& v : callee->def.variables) {
-		stack_ptr->variables.push_back(std::make_unique<variable>(v));
+		stack_ptr->variables.push_back(std::make_shared<variable>(v));
 	}
 
 	for (auto& instruction : callee->instructions) {
@@ -31,7 +31,7 @@ std::unique_ptr<operand> call_function(
 		if (instruction->execute(stack_ptr)) {
 			auto returned_value = std::unique_ptr<operand>(callee->return_value); //claim ownership!
 
-			if(returned_value->type != operand::Type::RVALUE_ARRAY)
+			if(!returned_value->is_object())
 				returned_value->lvalue_to_rvalue();
 
 			callee->return_value = 0;

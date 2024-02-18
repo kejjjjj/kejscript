@@ -1,9 +1,10 @@
-fn add_2(val)
+fn owo()
 {
-	return val + 2;
+	return [1, 2];
 }
 
 fn main()
 {
-	def poo = [ [add_2(2), add_2(add_2(2)) ], 8 ];
+	def cum = [ [1, 2], [3, 4] ];
+	def a = owo()[0];
 }

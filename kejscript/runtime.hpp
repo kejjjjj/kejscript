@@ -7,7 +7,7 @@
 struct function_stack
 {
 	function_stack() = default;
-	std::vector<std::unique_ptr<variable>> variables;
+	std::vector<std::shared_ptr<variable>> variables;
 
 	NO_COPY_CONSTRUCTOR(function_stack);
 };

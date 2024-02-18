@@ -10,7 +10,7 @@ constexpr std::unique_ptr<operand> create_rvalue(const T& t)
 	std::unique_ptr<datatype> v = std::make_unique<T>(t);
 	return std::make_unique<operand>(std::move(v));
 }
-inline std::unique_ptr<operand> create_lvalue(variable* v)
+inline std::unique_ptr<operand> create_lvalue(std::shared_ptr<variable>& v)
 {
 	return std::make_unique<operand>(v);
 }
@@ -59,3 +59,4 @@ private:
 
 
 };
+std::unique_ptr<operand> subscript(operand&, operand& expression);

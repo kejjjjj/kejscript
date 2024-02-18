@@ -112,16 +112,16 @@ struct expression_token_stack
 
 		if (p->punc == opening) {
 			stack.num_open++;
-			LOG("incrementing " << punctuations[p->punc].identifier << " to " << stack.num_open << " at " 
-				<< it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
+			//LOG("incrementing " << punctuations[p->punc].identifier << " to " << stack.num_open << " at " 
+			//	<< it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
 			return true;
 		}
 		else if (p->punc == closing) {
 			stack.num_close++;
-			LOG("incrementing " << punctuations[p->punc].identifier << " to " << stack.num_close << " at "
-				<< it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
+			//LOG("incrementing " << punctuations[p->punc].identifier << " to " << stack.num_close << " at "
+			//	<< it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
 
-			LOG("changing location\n");
+			//LOG("changing location\n");
 
 			location = it;
 			return true;
@@ -215,13 +215,7 @@ enum class operator_type : char
 	STANDARD,
 	POSTFIX
 };
-struct _operator {
-	OperatorPriority priority = OperatorPriority::FAILURE;
-	punctuation_e punc = punctuation_e::P_UNKNOWN;
-	void* eval = 0;
-	operator_type type = operator_type::STANDARD;
-	token_t* token = 0;
-};
+
 struct initializer_list;
 struct expression_block : public code_block
 {
@@ -256,7 +250,16 @@ struct function_call : public code_block
 	~function_call() = default;
 	function_block* target = 0;
 	std::unique_ptr<expression_block> arguments;
-	bool execute(struct function_stack* stack) override { stack; return false; }; //implement!
+	bool execute([[maybe_unused]]struct function_stack* stack) override { return false; }; //implement!
+
+	code_block_e type() const noexcept(true) override { return code_block_e::FN_CALL; }
+};
+struct subscript_block : public code_block
+{
+	subscript_block() = default;
+	~subscript_block() = default;
+	std::unique_ptr<ast_node> expression;
+	bool execute([[maybe_unused]] struct function_stack* stack) override { return false; }; //implement!
 
 	code_block_e type() const noexcept(true) override { return code_block_e::FN_CALL; }
 };
@@ -275,6 +278,25 @@ struct return_statement : public code_block
 	bool execute(struct function_stack* stack) override;
 	std::unique_ptr<expression_block> expression; //this can be a nullptr if returning void
 	code_block_e type() const noexcept(true) override { return code_block_e::RETURN; }
+
+};
+struct _operator {
+
+	_operator() = default;
+	_operator(OperatorPriority pr, punctuation_e pu, void* ev, operator_type t, token_t* tok, std::unique_ptr<code_block> blo) :
+		priority(pr), punc(pu), eval(ev), type(t), token(tok), block(std::move(blo)) {}
+	_operator(OperatorPriority pr, punctuation_e pu, void* ev, operator_type t, token_t* tok) :
+		priority(pr), punc(pu), eval(ev), type(t), token(tok), block() {}
+
+	OperatorPriority priority = OperatorPriority::FAILURE;
+	punctuation_e punc = punctuation_e::P_UNKNOWN;
+	void* eval = 0;
+	operator_type  type = operator_type::STANDARD;
+	token_t* token = 0;
+
+	std::unique_ptr<code_block> block; //for postfix operators
+
+	NO_COPY_CONSTRUCTOR(_operator);
 
 };
 struct validation_expression
@@ -333,15 +355,29 @@ struct singular {
 	validation_expression v;
 	token_t* token = nullptr;
 	function_block* owner = 0; // the function that owns this operand
-	std::unique_ptr<function_call> callable;
+	//std::unique_ptr<function_call> callable;
 
+	struct postfix
+	{
+		enum type
+		{
+			subscript,
+			function
+		};
+
+		type _type;
+		std::unique_ptr<code_block> block;
+	};
+
+	//std::unique_ptr<subscript_block> subscript;
 	std::unique_ptr<ast_node> parentheses;
 	std::unique_ptr<initializer_list> initializers;
 	NO_COPY_CONSTRUCTOR(singular);
 	//ListTokenPtr::iterator location;
 };
 using singularlist = std::list<std::unique_ptr<singular>>;
-using operatorlist = std::list<_operator>;
+using operator_ptr = std::unique_ptr<_operator>;
+using operatorlist = std::list<operator_ptr>;
 using nodeptr = std::unique_ptr<ast_node>;
 
 struct ast_node
@@ -356,13 +392,15 @@ struct ast_node
 
 	nodeptr left;
 	nodeptr right;
-	std::variant<std::unique_ptr<singular>, _operator> contents = nullptr;
+	std::variant<std::unique_ptr<singular>, std::unique_ptr<_operator>> contents;
 	bool is_leaf() const noexcept { return type == OPERAND; }
-	bool is_unary() const noexcept { return type == OPERATOR && std::get<_operator>(contents).type == operator_type::UNARY; }
+	bool is_unary() const noexcept { return type == OPERATOR && std::get<operator_ptr>(contents)->type == operator_type::UNARY; }
+	bool is_postfix() const noexcept { return type == OPERATOR && std::get<operator_ptr>(contents)->type == operator_type::POSTFIX; }
+
 	bool is_list() const noexcept { return type == OPERAND && std::get<std::unique_ptr<singular>>(contents)->initializers; }
 	auto& get_list() { return std::get<std::unique_ptr<singular>>(contents)->initializers; }
-	void make_operator(const _operator& op) {
-		contents = op;
+	void make_operator(operator_ptr& op) {
+		contents = std::move(op);
 		type = OPERATOR;
 	}
 	void make_operand(std::unique_ptr<singular>& s) {
@@ -370,10 +408,61 @@ struct ast_node
 		type = OPERAND;
 	}
 
+	void print(int level = 0, std::vector<std::vector<std::string>> levels = std::vector<std::vector<std::string>>()) const {
+
+		if (!this)
+			return;
+
+		print_internal(level, levels);
+		
+		size_t i = 0;
+		for (const auto& values : levels) {
+			size_t totalWidth = 0;
+			for (const std::string& value : values)
+				totalWidth += value.length() + 1ull;
+
+			size_t offset = (20ull - totalWidth) / 2ull;
+
+			size_t depthOffset = i * 2;
+
+			if (i % 2 == 1)
+				depthOffset = (levels.size() - i - 1) * 4;
+
+			for (const std::string& value : values) {
+				std::cout << std::string(offset + depthOffset, ' ') << value << " ";
+				offset += value.length() + 1ull;
+			}
+			std::cout << std::endl;
+			
+
+			i++;
+		}
+
+	}
+
 	constexpr std::unique_ptr<singular>& get_operand(){	return std::get<std::unique_ptr<singular>>(contents);	}
-	constexpr _operator& get_operator(){	return std::get<_operator>(contents);	}
+	constexpr operator_ptr& get_operator(){	return std::get<operator_ptr>(contents);	}
 
 	NO_COPY_CONSTRUCTOR(ast_node);
+
+private:
+	void print_internal(int level, std::vector<std::vector<std::string>>& levels) const
+	{
+		if (!this)
+			return;
+
+		std::string a = (type == Type::OPERAND
+			? std::get<std::unique_ptr<singular>>(contents)->token->string :
+			std::get<operator_ptr>(contents)->token->string);
+
+		if (levels.size() <= level)
+			levels.resize(size_t(level + 1));
+
+		levels[level].push_back(a);
+
+		left->print_internal(level + 1, levels);
+		right->print_internal(level + 1, levels);
+	}
 };
 struct expression_context
 {
@@ -382,8 +471,11 @@ struct expression_context
 
 	std::unique_ptr<expression_block> block;
 	singularlist ex;
-	std::list<_operator> operators;
+	std::list<operator_ptr> operators;
 	std::string identifier;
+	size_t size_excluding_postfix = 0;
+
+
 
 	NO_COPY_CONSTRUCTOR(expression_context);
 };

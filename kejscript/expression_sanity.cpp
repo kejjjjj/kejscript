@@ -44,6 +44,9 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, e
 	context.identifier = it->get()->string;
 
 	peek_identifier(it, end, context, context.block);
+
+	context.size_excluding_postfix = context.operators.size();
+
 	peek_postfix_operator(it, end, context, s.get());
 
 	//an expression with parentheses is the next one
@@ -100,7 +103,18 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 	}
 
 	auto func = evaluation_functions::find_function(op->punc);
-	ctx.operators.push_back({ op->priority, op->punc, reinterpret_cast<void*>(func), operator_type::STANDARD, it->get()});
+
+
+
+	ctx.operators.push_back(
+		std::make_unique<_operator>(
+			op->priority,
+			op->punc,
+			reinterpret_cast<void*>(func),
+			operator_type::STANDARD,
+			it->get()
+		));
+
 	std::advance(it, 1);
 	return;
 }
@@ -155,8 +169,8 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 
 		if (ctx.stack.time_to_exit()) {
 			it = ctx.stack.location;
-			LOG("returning to " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]"
-			<< punctuations[ctx.stack.opening].identifier << " to " << punctuations[ctx.stack.closing].identifier << '\n');
+			//LOG("returning to " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]"
+			//<< punctuations[ctx.stack.opening].identifier << " to " << punctuations[ctx.stack.closing].identifier << '\n');
 			break;
 		}
 
@@ -176,7 +190,12 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 
 
 	//generate the abstract syntax tree
+	//std::cout << "aaaa\n";
 	block->expression_ast = generate_ast(expressions, operators);
+
+	LOG("\n          ----------------\n");
+	block->expression_ast->print();
+	LOG("\n          ----------------\n");
 
 	//if there were parentheses in the expression, insert them into the leaves
 
@@ -208,7 +227,15 @@ void peek_unary_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end
 
 	auto func = evaluation_functions::find_unary_function(ptr->punc);
 
-	context.operators.push_back({ .priority = ptr->priority, .punc = ptr->punc, .eval=reinterpret_cast<void*>(func), .type = operator_type::UNARY});
+	context.operators.push_back(
+		std::make_unique<_operator>(
+			ptr->priority,
+			ptr->punc,
+			reinterpret_cast<void*>(func),
+			operator_type::UNARY,
+			it->get()
+		));
+
 	return peek_unary_operator(++it, end, context);
 }
 void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& context, std::unique_ptr<expression_block>& block)
@@ -254,7 +281,7 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 				throw linting_error(results.it->get(), "expected at least one expression");
 			}
 
-			std::cout << "numEvals: " << results.num_evaluations << '\n';
+			//std::cout << "numEvals: " << results.num_evaluations << '\n';
 
 			it = results.it;
 
@@ -290,7 +317,7 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 
 	if (token->is_reserved_keyword())
 		throw linting_error(token, "the '%s' keyword is a reserved keyword and it cannot be used here", token->string.c_str());
-
+	
 
 	std::advance(it, 1);
 	return;
@@ -313,18 +340,38 @@ void peek_postfix_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 	if (!is_postfix_operator(ptr->punc))
 		return;
 
-	_operator v = { .priority = ptr->priority, .punc = ptr->punc };
+	//_operator v = { .priority = ptr->priority, .punc = ptr->punc };
+
+	auto iter = context.operators.begin();
+	std::advance(iter, context.size_excluding_postfix);
+
+	context.operators.insert(iter, std::make_unique<_operator>( //these need to be in reverse order
+		ptr->priority,
+		ptr->punc,
+		nullptr,
+		operator_type::POSTFIX,
+		it->get()
+	));
+
+	iter = context.operators.begin();
+	std::advance(iter, context.size_excluding_postfix);
+	//context.operators.push_back(
+	//	std::make_unique<_operator>(
+	//		ptr->priority, 
+	//		ptr->punc, 
+	//		nullptr, 
+	//		operator_type::POSTFIX,
+	//		it->get()
+	//	));
 
 	if (ptr->punc == P_BRACKET_OPEN) {
-		it = evaluate_subscript_sanity(it, end, context);
+		it = evaluate_subscript_sanity(it, end, context, iter);
 	}
 	else if (ptr->punc == P_PAR_OPEN) {
-		it = evaluate_function_call_sanity(it, end, context, s);
+		it = evaluate_function_call_sanity(it, end, context, iter);
 	}
 	else
 		it = linting_data::getInstance().tokens->erase(it);
-
-	context.operators.push_back({ .priority = ptr->priority, .punc = ptr->punc, .eval = nullptr, .type= operator_type::POSTFIX});
 
 	return peek_postfix_operator(++it, end, context, s);
 }
@@ -351,7 +398,12 @@ void generate_ast_operand_leaf(std::unique_ptr<ast_node>& node, singularlist& ex
 	expressions.clear();
 
 	if (operators.size()) {
-		if (operators.front().type == operator_type::UNARY) {
+		if (operators.front()->type == operator_type::UNARY) {
+			node->left = std::make_unique<ast_node>();
+			generate_ast_recursive(node->left, expressions, operators);
+
+		}
+		else if (operators.front()->type == operator_type::POSTFIX) {
 			node->left = std::make_unique<ast_node>();
 			generate_ast_recursive(node->left, expressions, operators);
 		}
@@ -360,6 +412,8 @@ void generate_ast_operand_leaf(std::unique_ptr<ast_node>& node, singularlist& ex
 			generate_ast_recursive(node->right, expressions, operators);
 		}
 	}
+	
+	expressions.clear();
 }
 void generate_ast_recursive(std::unique_ptr<ast_node>& node, singularlist& expressions, operatorlist& operators)
 {
@@ -371,21 +425,33 @@ void generate_ast_recursive(std::unique_ptr<ast_node>& node, singularlist& expre
 		if(operators.empty())
 			return;
 
-		if (operators.size() == 1 && operators.front().type != operator_type::POSTFIX) {
-			throw linting_error(operators.front().token, "the expression ended unexpectedly");
+		if (operators.size() == 1 && operators.front()->type != operator_type::POSTFIX) {
+			throw linting_error(operators.front()->token, "the expression ended unexpectedly");
 		}
 	}
 
 	op1 = operators.begin();
 	auto op = get_lowest_precedence(op1, operators.end());
 
-	if (operators.size() && op.position->type == operator_type::UNARY) {
-		node->make_operator(*op.position);
+	if (operators.size() && op.position->get()->type == operator_type::UNARY) {
+		auto pos = op.position;
+		auto ptr = std::move(*op.position);
+		node->make_operator(ptr);
 		node->left = std::make_unique<ast_node>();
-		operators.erase(op.position);
+		operators.erase(pos);
 		return generate_ast_recursive(node->left, expressions, operators);
 	}
+	else if (operators.size() && op.position->get()->type == operator_type::POSTFIX) {
+		auto pos = op.position;
+		auto ptr = std::move(*op.position);
+		node->make_operator(ptr);
+		node->left = std::make_unique<ast_node>();
 
+		if(node->get_operator().get()->block->type() == code_block_e::EXPRESSION)
+			node->right = std::move(dynamic_cast<expression_block*>(node->get_operator().get()->block.get())->expression_ast);
+		operators.erase(pos);
+		return generate_ast_recursive(node->left, expressions, operators);
+	}
 	if (expressions.size() == 1) {
 		return generate_ast_operand_leaf(node, expressions, operators);
 	}
@@ -398,16 +464,21 @@ void generate_ast_recursive(std::unique_ptr<ast_node>& node, singularlist& expre
 
 	node->left = std::make_unique<ast_node>();
 	node->right = std::make_unique<ast_node>();
-	node->make_operator(*op.position);
 
 	//sort the left tree (everything to the left of the operator)
 	singularlist left_branch = singularlist(std::make_move_iterator(expressions.begin()), std::make_move_iterator(std::next(left_substr)));
-	operatorlist left_branch_op = operatorlist(operators.begin(), op.position);
+	operatorlist left_branch_op = operatorlist(std::make_move_iterator(operators.begin()), std::make_move_iterator(op.position));
+
+	singularlist right_branch = singularlist(std::make_move_iterator(right_substr), std::make_move_iterator(expressions.end()));
+	operatorlist right_branch_op = operatorlist(std::make_move_iterator(std::next(op.position)), std::make_move_iterator(operators.end()));
+
+	auto ptr = (std::move(*op.position));
+	node->make_operator(ptr);
+
 	generate_ast_recursive(node->left, left_branch, left_branch_op);
 
 	//sort the right tree (everything to the right of the operator)
-	singularlist right_branch = singularlist(std::make_move_iterator(right_substr), std::make_move_iterator(expressions.end()));
-	operatorlist right_branch_op = operatorlist(std::next(op.position), operators.end());
+
 	generate_ast_recursive(node->right, right_branch, right_branch_op);
 
 }
@@ -421,23 +492,27 @@ std::unique_ptr<ast_node> generate_ast(singularlist& operands, operatorlist& ope
 }
 precedence_results get_lowest_precedence(operatorlist::iterator& itr1, const operatorlist::iterator& end)
 {
+
+
 	OperatorPriority priority{};
-	OperatorPriority lowest_precedence = itr1->priority;
+	
 
 	operatorlist::iterator lowest_precedence_i = itr1;
 	precedence_results results{ itr1, 0 };
 	
-	while (itr1 != end && itr1->type != operator_type::STANDARD) {
+	while (itr1 != end && itr1->get()->type != operator_type::STANDARD) {
 		std::advance(itr1, 1);
 	}
 
 	if (itr1 == end)
 		return results;
 
+	OperatorPriority lowest_precedence = itr1->get()->priority;
+
 	size_t real_distance = 0;
 	size_t lowest_distance = 0;
 	do {
-		priority = itr1->priority;
+		priority = itr1->get()->priority;
 		
 		if (priority < lowest_precedence) {
 			lowest_precedence = priority;
@@ -447,7 +522,7 @@ precedence_results get_lowest_precedence(operatorlist::iterator& itr1, const ope
 
 		std::advance(itr1, 1);
 
-		while (itr1 != end && itr1->type != operator_type::STANDARD) {
+		while (itr1 != end && itr1->get()->type != operator_type::STANDARD) {
 			std::advance(itr1, 1);
 		}
 

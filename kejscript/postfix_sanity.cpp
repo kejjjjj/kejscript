@@ -5,39 +5,46 @@
 [[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(
 	ListTokenPtr::iterator it, 
 	[[maybe_unused]]ListTokenPtr::iterator& end, 
-	[[maybe_unused]] expression_context& context)
+	[[maybe_unused]] expression_context& context,
+	operatorlist::iterator& pos)
 {
-	throw linting_error(it->get(), "don't do subscript yet!!!");
-	////check the next token
-	//if (VECTOR_PEEK(it, 1, end) == false) {
-	//	throw linting_error("no way\n");
-	//}
+	//throw linting_error(it->get(), "don't do subscript yet!!!");
 
-	//std::advance(it, 1);
+	//check the next token
+	if (VECTOR_PEEK(it, 1, end) == false) {
+		throw linting_error("no way\n");
+	}
 
-	//auto stack = expression_token_stack(P_BRACKET_OPEN, P_BRACKET_CLOSE);
+	std::advance(it, 1);
 
-	//LOG("jumping from " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
+	if (it->get()->is_operator(P_BRACKET_CLOSE) == true) { // no contents, not allowed
+		throw linting_error(it->get(), "expected an expression instead of ']'");
+	}
 
-	//it = evaluate_expression_sanity(it, end, stack).it;
+	auto block = std::make_unique<expression_block>();
+	expression_token_stack stack(P_BRACKET_OPEN, P_BRACKET_CLOSE);
 
-	//if (it->get()->is_operator(P_BRACKET_CLOSE) == false) {
-	//	throw linting_error(it->get(), "expected a '%s'", punctuations[P_BRACKET_CLOSE].identifier.c_str());
-	//}
+	l_expression_results results = evaluate_expression_sanity(it, end, block, stack);
 
-	//context.stack.stack.num_close++;
-	//++it;
-	//context.stack.location = it;
+	it = results.it;
 
-	//return it;
+	if (context.stack.in_use() && context.stack.opening == P_BRACKET_OPEN) {
+		context.stack.stack.num_close++;
+		context.stack.location = it;
+	}
+
+	pos->get()->block = std::move(block);
+
+	return it;
 
 }
 
 [[nodiscard]] ListTokenPtr::iterator evaluate_function_call_sanity(
 	ListTokenPtr::iterator it, 
 	ListTokenPtr::iterator& end, 
-	[[maybe_unused]] expression_context& context, 
-	singular* s)
+	[[maybe_unused]] expression_context& context,
+	operatorlist::iterator& pos
+	)
 {
 	//check the next token
 	if (VECTOR_PEEK(it, 1, end) == false) {
@@ -48,14 +55,17 @@
 
 	std::advance(it, 1);
 
-	s->callable = std::make_unique<function_call>();
-	s->callable->target = linting_data::getInstance().get_function(context.identifier)->second.get();
-	auto& call_block = s->callable;
+	
+
+	auto call_block = std::make_unique<function_call>();
+	call_block->target = linting_data::getInstance().get_function(context.identifier)->second.get();
 
 	//parse the arguments
 	if (it->get()->is_operator(P_PAR_CLOSE) == true) { // a function call with 0 arguments, return immediately 
+		context.operators.back()->block = std::move(call_block);
 		return it;
 	}
+
 	//get the list of the arguments
 	expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
 	LOG("jumping from " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]\n");
@@ -75,7 +85,7 @@
 		context.stack.location = it;
 	}
 	
-	//std::advance(it, 1);
+	pos->get()->block = std::move(call_block);
 
 	return it;
 }

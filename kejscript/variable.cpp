@@ -2,28 +2,6 @@
 #include "operand.hpp"
 
 
-void variable::insert_element(struct operand* val)
-{
-	std::unique_ptr<variable> var = std::make_unique<variable>();
-
-	switch (val->type) {
-	case operand::Type::LVALUE:
-		var = std::unique_ptr<variable>(std::get<variable*>(val->value));
-		break;
-	case operand::Type::RVALUE:
-		var->value = std::move(std::get<datatype_ptr>(val->value));
-		break;	
-	case operand::Type::RVALUE_ARRAY:
-		auto& a = std::get<std::vector<operand_ptr>>(val->value);
-		for (auto& o : a) {
-			var->insert_element(o.get());
-		}
-
-		break;
-	}
-
-	arrayElements.push_back(std::move(var));
-}
 
 void variable::print(size_t spaces)
 {
@@ -34,21 +12,27 @@ void variable::print(size_t spaces)
 	for (size_t i = 0; i < spaces; i++) {
 		prefix += "  ";
 	}
-	size_t i = 0;
-	for (auto& arr : arrayElements) {
+	if (obj) {
+		size_t i = 0;
+		for (auto& arr : obj->variables) {
 
-		if (arr->arrayElements.size()) {
-			std::cout << std::format("{}[{}]: \n", prefix, i);
+			if (arr->obj) {
+				std::cout << std::format("{}[{}]: \n", prefix, i);
+			}
+			++i;
+
+			arr->print(spaces + 1);
 		}
-		++i;
-
-		arr->print(spaces + 1);
 	}
 
+	if (!obj) {
 
-	if (arrayElements.empty()) {
-		auto& v = std::get<std::unique_ptr<datatype>>(value);
-		std::cout << std::format("{}| <{}> ({})\n", prefix, v->type_str(), v->value_str());
+		if (value) {
+			auto& v = value;
+			std::cout << std::format("{}| <{}> ({}) @ 0x{:x}\n", prefix, v->type_str(), v->value_str(), ptrdiff_t(this));
+		}else
+			std::cout << std::format("{}| empty\n", prefix);
+
 	}
 	
 

@@ -10,34 +10,84 @@ bool expression_block::execute(function_stack* stack)
 	evaluate_expression(owner, stack, expression_ast);
 	return false;
 }
-void evaluate_unary(operand& target, const nodeptr& node)
+static void evaluate_unary(operand& target, const nodeptr& node)
 {
 	if (node->is_unary() == false)
 		return;
 
 	auto& op = node->get_operator();
 
-	reinterpret_cast<evaluation_functions::unaryfuncptr>(op.eval)(target);
+	reinterpret_cast<evaluation_functions::unaryfuncptr>(op->eval)(target);
 	return evaluate_unary(target, node->left);
+
+}
+static void evaluate_postfix(function_block* owner, function_stack* stack, operand_ptr& target, const nodeptr& node)
+{
+	if (node->is_postfix() == false)
+		return;
+
+	std::cout << "eval postfix\n";
+
+	auto& op = node->get_operator();
+	
+	if (op->block->type() == code_block_e::FN_CALL) {
+
+		auto function = dynamic_cast<function_call*>(op->block.get());
+
+		expression_block* arg = function->arguments.get();
+		std::list<std::unique_ptr<operand>> args;
+		while (arg) {
+			args.push_back(evaluate_expression(owner, stack, arg->expression_ast));
+			arg = arg->next.get();
+		}
+		target = call_function(owner, function->target, args, stack);
+
+	}
+	else if (op->block->type() == code_block_e::EXPRESSION) { //subscript
+
+		auto expression = evaluate_expression(owner, stack, node->right);
+		target = subscript(*target, *expression);
+	}
+
+	target->_operand = op->token;
+
+	return;
+
+	//return evaluate_postfix(owner, stack, target, node->left);
 
 }
 std::unique_ptr<operand> evaluate_initializer_list(function_block* owner, function_stack* stack, const initializer_list* list)
 {
-	auto rvalue_array = std::make_unique<operand>();
-	rvalue_array->make_array();
+	auto rvalue_array = std::make_shared<variable>();
+	rvalue_array->initialized = true;
+	rvalue_array->identifier = "list";
+	rvalue_array->obj = std::make_shared<object>();
 
 	auto current = list->expression.get();
 	while (current) {
 
 		const nodeptr& target = current->list ? current->list->expression->expression_ast : current->expression_ast;
 		auto result = evaluate_expression(owner, stack, target);
-		rvalue_array->insert_element(result);
+		rvalue_array->obj->insert(result);
 		current = current->next.get();
 	}
-	return rvalue_array;
+
+	return create_lvalue(rvalue_array);
 }
 std::unique_ptr<operand> evaluate_expression(function_block* owner, function_stack* stack, const nodeptr& node)
 {
+	if (node->is_list()) {
+		auto ret = evaluate_initializer_list(owner, stack, node->get_list().get());
+		ret->_operand = std::get<std::unique_ptr<singular>>(node->contents)->token;
+		return ret;
+	}
+
+	if (node->is_postfix()) {
+		auto expression = evaluate_expression(owner, stack, node->left);
+		evaluate_postfix(owner, stack, expression, node);
+		return std::move(expression);
+	}
+
 	if (node->is_unary()) {
 		auto expression = evaluate_expression(owner, stack, node->left);
 		evaluate_unary(*expression.get(), node);
@@ -46,26 +96,7 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 
 	if (node->is_leaf()) {
 
-		if (node->is_list()) {
-			auto ret = evaluate_initializer_list(owner, stack, node->get_list().get());
-			ret->_operand = std::get<std::unique_ptr<singular>>(node->contents)->token;
-			return ret;
-		}
-
-		//if it is a function call:
-		auto& leaf = node->get_operand();
-		auto& function = leaf->callable;
-
-		if (function) {
-			expression_block* arg = function->arguments.get();
-			std::list<std::unique_ptr<operand>> args;
-			while (arg) {
-				args.push_back(evaluate_expression(owner, stack, arg->expression_ast));
-				arg = arg->next.get();
-			}
-			return call_function(owner, function->target, args, stack);
-		}		
-
+		auto& leaf = node->get_operand();	
 		return std::make_unique<operand>(*leaf.get(), stack);
 	}
 
@@ -79,7 +110,7 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 	//}
 
 	auto& op = node->get_operator();
-	auto ret = reinterpret_cast<evaluation_functions::funcptr>(op.eval)(*left_operand, *right_operand);
+	auto ret = reinterpret_cast<evaluation_functions::funcptr>(op->eval)(*left_operand, *right_operand);
 	if(right_operand->_operand)
 		ret->_operand = right_operand->_operand;
 	else if (left_operand->_operand)

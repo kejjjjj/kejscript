@@ -3,6 +3,8 @@
 #include "pch.hpp"
 #include "datatype.hpp"
 
+struct object;
+
 struct variable
 {
 	variable() = default;
@@ -10,10 +12,10 @@ struct variable
 	~variable() = default;
 
 	std::string identifier;
-	std::variant<std::unique_ptr<datatype>, variable*> value;
+	std::unique_ptr<datatype> value;
 	bool initialized = false;
-	void insert_element(struct operand* val);
-	std::vector<std::unique_ptr<variable>> arrayElements;
+
+	std::shared_ptr<object> obj;
 
 	void print(size_t spaces = 0);
 

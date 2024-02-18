@@ -70,12 +70,17 @@ void evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, 
 void evaluate_else_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
-[[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(ListTokenPtr::iterator begin, ListTokenPtr::iterator& end, expression_context& context);
+[[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(
+	ListTokenPtr::iterator begin, 
+	ListTokenPtr::iterator& end, 
+	expression_context& context,
+	operatorlist::iterator& it);
 [[nodiscard]] ListTokenPtr::iterator  evaluate_function_call_sanity(
 	ListTokenPtr::iterator begin,
 	ListTokenPtr::iterator& end,
 	expression_context& context,
-	singular* s);
+	operatorlist::iterator& it
+	);
 
 
 

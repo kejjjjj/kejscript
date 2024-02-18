@@ -34,6 +34,7 @@ CLASS(const CLASS&) = delete
 #include <unordered_set>
 #include <variant>
 #include <cassert>
+#include <queue>
 
 #include "punctuation.hpp"
 #include "tokenizer.hpp"

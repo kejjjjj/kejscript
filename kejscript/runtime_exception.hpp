@@ -1,3 +1,5 @@
+#pragma once
+
 #include "pch.hpp"
 
 struct runtime_error

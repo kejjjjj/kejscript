@@ -16,7 +16,7 @@ operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr
 	if (oper.type == validation_expression::Type::OTHER) {
 		const auto& table = stack->variables;
 
-		variable* r = table[ std::get<validation_expression::other>(oper.value).variable_index ].get();
+		auto& r = table[ std::get<validation_expression::other>(oper.value).variable_index ];
 		
 		value = r;
 		type = Type::LVALUE;
@@ -49,12 +49,6 @@ operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr
 
 
 }
-void operand::make_array()
-{
-	value = std::vector<operand_ptr>();
-	type = Type::RVALUE_ARRAY;
-}
-
 void operand::cast_weaker_operand(datatype_e this_type, datatype_e other_type, operand& other)
 {
 	operand* stronger = nullptr;
@@ -174,14 +168,14 @@ bool operand::bool_convertible()
 
 	//value.emplace<variable*>(std::get<variable*>(value));
 
-	auto lval = std::get<variable*>(value);
+	auto& lval = std::get<std::shared_ptr<variable>>(value);
 
 	if (lval->initialized == false)
 		throw runtime_error(_operand, "use of an uninitialized variable '%s'", lval->identifier.c_str());
 
 	//value.emplace(1);
 
-	auto dtype = std::get<datatype_ptr>(lval->value).get();
+	auto dtype = (lval->value).get();
 
 	switch (dtype->type()) {
 	case datatype_e::bool_t:
@@ -221,7 +215,7 @@ datatype* operand::get_value()
 	if (type == Type::RVALUE)
 		return std::get<rvalue>(value).get();
 
-	auto v = std::get<variable*>(value);
+	auto& v = std::get<std::shared_ptr<variable>>(value);
 
-	return type == Type::RVALUE ? std::get<rvalue>(value).get() : std::get<datatype_ptr>(v->value).get();
+	return type == Type::RVALUE ? std::get<rvalue>(value).get() : (v->value).get();
 }
