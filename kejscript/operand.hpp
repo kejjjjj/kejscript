@@ -134,6 +134,7 @@ struct string_object
 		variables.push_back(std::make_shared<variable>());
 		auto& back = variables.back();
 
+		back->immutable = true;
 		back->value = std::make_unique<char_dt>(c);
 		back->identifier = "character";
 		back->initialized = true;

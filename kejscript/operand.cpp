@@ -169,15 +169,15 @@ bool operand::has_value()  const noexcept
 }
 bool operand::is_integral() const noexcept
 {
-	return !is_object() && get_value()->is_integral();
+	return !is_object() && !is_string() && get_value()->is_integral();
 }
 bool operand::is_numeric() const noexcept
 {
-	return !is_object() && get_value()->is_numeric();
+	return !is_object() && !is_string() && get_value()->is_numeric();
 }
 bool operand::bool_convertible() const noexcept
 {
-	return !is_object() && get_value()->bool_convertible();
+	return !is_object() && !is_string() && get_value()->bool_convertible();
 }
 [[maybe_unused]] datatype* operand::lvalue_to_rvalue()
 {

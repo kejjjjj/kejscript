@@ -22,6 +22,8 @@ struct linting_data
 	function_block* current_function = 0;
 	ListTokenPtr* tokens = 0;
 	std::unordered_map<std::string, function_def> existing_funcs;
+	std::unordered_map<std::string, std::unique_ptr<struct_def>> structs;
+
 	void validate(ListTokenPtr::iterator it, ListTokenPtr::iterator to);
 
 	bool all_functions_exists(const std::string& name) {
@@ -35,13 +37,23 @@ struct linting_data
 	auto& function_declare(std::unique_ptr<function_block>& func) {
 		
 		if (function_exists(func->def.identifier))
-			throw linting_error("this func already exists");
+			throw linting_error("the function '%s' already exists", func->def.identifier.c_str());
 
 		LOG("declaring the function '" << func->def.identifier << "' with " << func->def.parameters.size() << " parameters!\n");
 		return function_table.insert(function_table.end(), { func->def.identifier, std::move(func) })->second;
 		
 	}
+	bool struct_exists(const std::string& s) const { return structs.find(s) != structs.end(); }
 
+	auto& struct_declare(std::unique_ptr<struct_def>& _struct) {
+
+		if (struct_exists(_struct->identifier))
+			throw linting_error("the struct '%s' already exists", _struct->identifier.c_str());
+
+		LOG("declaring the struct '" << _struct->identifier << "' with " << _struct->initializers.size() << " variables!\n");
+		
+		return structs.insert(structs.end(), { _struct->identifier, std::move(_struct) })->second;
+	}
 	std::unordered_map<std::string, std::unique_ptr<function_block>> function_table;
 };
 
@@ -70,6 +82,7 @@ void evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, 
 void evaluate_else_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_for_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+void evaluate_struct_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end);
 
 [[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(
 	ListTokenPtr::iterator begin, 

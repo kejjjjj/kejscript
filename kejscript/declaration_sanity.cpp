@@ -31,12 +31,8 @@ void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::itera
 	auto& funcdef = data.current_function->def;
 	funcdef.variables.push_back(it->get()->string);
 
-	//check if the next token is valid
 	if (VECTOR_PEEK(it, 1, end) == false) {
-		//if not, then there is no initializer
-		std::advance(it, 1);
-		return;
-	
+		throw linting_error(it->get(), "expected a '=' or ';'");
 	}
 	
 	if (std::next(it)->get()->is_operator(P_SEMICOLON)) {

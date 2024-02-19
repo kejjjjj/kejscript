@@ -29,7 +29,7 @@ linting_scope* linting_delete_scope([[maybe_unused]] ListTokenPtr::iterator& it,
 
 	auto& f = linting_data::getInstance().current_function;
 	
-	if (f->nest_depth)
+	if (f && f->nest_depth)
 		--f->nest_depth;
 
 	//a function ends here so push it to the table

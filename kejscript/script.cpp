@@ -176,7 +176,8 @@ const std::unordered_map<std::string, tokentype_t> tokenMap = {
 	{"while",	tokentype_t::WHILE},
 	{"for",		tokentype_t::FOR},
 	{"true",	tokentype_t::_TRUE},
-	{"false",	tokentype_t::_FALSE}
+	{"false",	tokentype_t::_FALSE},
+	{"struct",	tokentype_t::STRUCT}
 };
 
 

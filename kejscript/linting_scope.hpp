@@ -7,7 +7,8 @@ enum class scope_type_e
 	UNKNOWN,
 	IF,
 	ELSE,
-	WHILE
+	WHILE,
+	STRUCT
 };
 
 class linting_scope

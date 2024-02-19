@@ -85,6 +85,9 @@ std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand,
 
 	auto& v = std::get<std::shared_ptr<variable>>(left_operand.value);
 
+	if(v->immutable)
+		throw runtime_error(left_operand._operand, "the operand is immutable");
+
 	if (auto obj = right_operand.is_object()) {
 
 		v->value.reset();
@@ -108,6 +111,9 @@ std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand,
 	}
 	auto right_value = right_operand.lvalue_to_rvalue();
 
+	v->string = 0;
+	v->obj = 0;
+
 	switch (right_value->type()) {
 	case datatype_e::bool_t:
 		v->value = datatype::cast<bool_dt>(right_value);
@@ -119,6 +125,7 @@ std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand,
 		v->value = datatype::cast<double_dt>(right_value);
 		break;
 	case datatype_e::string_t:
+		
 		v->value = datatype::cast<string_dt>(right_value);
 		break;
 	case datatype_e::char_t:
@@ -132,6 +139,8 @@ std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand,
 void evaluation_functions::assign_to_lvalue(std::shared_ptr<variable>& var, const operand_ptr& right)
 {
 
+	//if (var->immutable)
+	//	throw runtime_error(right->_operand, "the operand is immutable");
 
 	if (auto obj = right->is_object()) {
 
@@ -155,6 +164,9 @@ void evaluation_functions::assign_to_lvalue(std::shared_ptr<variable>& var, cons
 	if (right->has_value() == false) {
 		throw runtime_error(right->_operand, "the operand does not have a value");
 	}
+
+	var->string = 0;
+	var->obj = 0;
 
 	auto right_operand = right->lvalue_to_rvalue();
 	auto& left_operand = var->value;

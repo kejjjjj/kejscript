@@ -29,7 +29,8 @@ enum class tokentype_t : uint8_t
 	IF,
 	ELSE,
 	WHILE,
-	FOR
+	FOR,
+	STRUCT
 };
 
 struct code_block;
@@ -134,24 +135,24 @@ struct expression_token_stack
 		return stack.num_open && stack.num_close == stack.num_open;
 	}
 
-	bool not_in_use() const noexcept { return opening == P_UNKNOWN || closing == P_UNKNOWN; }
-	bool in_use() const noexcept { return opening != P_UNKNOWN && closing != P_UNKNOWN; }
+	bool in_use() const noexcept { return item_list && opening != P_UNKNOWN && closing != P_UNKNOWN; }
+	bool not_in_use() const noexcept { return !in_use(); }
 
 	token_stack stack;
 	punctuation_e opening = punctuation_e::P_UNKNOWN;
 	punctuation_e closing = punctuation_e::P_UNKNOWN;
 	ListTokenPtr::iterator location = {};
 	size_t num_evaluations = 0; //the number of recursive calls to evaluate expression
+	bool item_list = true;
 
 };
 struct function_def
 {
 	std::vector<std::string> parameters;
 	std::string identifier;
-	std::vector<std::string> variables;
-
-	
+	std::vector<std::string> variables;	
 };
+
 enum class code_block_e : uint8_t
 {
 	FUNCTION,
@@ -292,6 +293,21 @@ struct return_statement : public code_block
 	code_block_e type() const noexcept(true) override { return code_block_e::RETURN; }
 
 };
+struct variable_initializer
+{
+	std::string variable;
+	std::unique_ptr<expression_block> initializer;
+};
+struct struct_def
+{
+	struct_def() = default;
+	std::string identifier;
+	std::vector<std::unique_ptr<variable_initializer>> initializers;
+
+	NO_COPY_CONSTRUCTOR(struct_def);
+
+};
+
 struct _operator {
 
 	_operator() = default;

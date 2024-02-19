@@ -71,8 +71,13 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, e
 		return;
 	}
 
+
 	// a literal token
 	if (identifier_it->get()->is_identifier() == false) {
+
+		if (!identifier_it->get()->value)
+			return;
+
 		s->make_literal(create_literal(identifier_it));
 	}
 	else {
@@ -142,17 +147,20 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 
 	while (it != end) {
 
+		//if (it->get()->is_operator(punctuation_e::P_COMMA))
+		//	goto comma;
+
 		tokenize_operand(it, end, ctx);
 
 		//the comma should only exit if we are not using the stack
 		if (it->get()->is_operator(punctuation_e::P_COMMA)) {
-
+			//comma:
 			//this condition means that we are currently parsing function arguments or parsing an initializer list
 			if (ctx.stack.in_use() && (ctx.stack.opening == P_PAR_OPEN || ctx.stack.opening == P_BRACKET_OPEN))
 			{
 				//this expression block ends here
 				if (expressions.empty()) {
-					throw linting_error(it->get(), "an empty expression is not allowed");
+					throw linting_error(it->get(), "expected an expression after the ','");
 				}
 
 				block->expression_ast = generate_ast(expressions, operators);
@@ -167,8 +175,8 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 				return evaluate_expression_sanity(it, end, _block->next, token_stack);
 			}
 
-			if (ctx.stack.time_to_exit())
-				break;
+			//if (ctx.stack.time_to_exit())
+			//	break;
 
 			//a random comma
 			if (ctx.stack.num_evaluations == 0)
@@ -179,8 +187,8 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 
 		if (ctx.stack.time_to_exit()) {
 			it = ctx.stack.location;
-			//LOG("returning to " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]"
-			//<< punctuations[ctx.stack.opening].identifier << " to " << punctuations[ctx.stack.closing].identifier << '\n');
+			LOG("returning to " << it->get()->string << " at [" << it->get()->line << ", " << it->get()->column << "]"
+			<< punctuations[ctx.stack.opening].identifier << " to " << punctuations[ctx.stack.closing].identifier << '\n');
 			break;
 		}
 
@@ -262,8 +270,12 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 	if (it->get()->is_punctuation()) {
 		if (it->get()->is_operator(P_PAR_OPEN)) {
 
+			if (context.stack.stack.num_open)
+				context.stack.stack.num_open = 1;
+
 			std::advance(it, 1);
 			expression_token_stack stack(P_PAR_OPEN, P_PAR_CLOSE);
+			stack.item_list = false;
 			block->next = std::make_unique<expression_block>();
 			auto results = evaluate_expression_sanity(it, end, block->next, stack);
 			if (results.num_evaluations > 1) {
@@ -273,7 +285,12 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 
 			if (context.stack.in_use()) {
 				context.stack.stack.num_close++;
-				context.stack.location = it;
+
+				if(context.stack.opening == P_PAR_OPEN)
+					context.stack.location = it;
+				else
+					context.stack.location = std::next(it);
+
 			}
 			std::advance(it, 1);
 			return;
@@ -297,7 +314,12 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 
 			if (context.stack.in_use()) {
 				context.stack.stack.num_close++;
-				context.stack.location = it;
+
+				if (context.stack.opening == P_BRACKET_OPEN)
+					context.stack.location = it;
+				else
+					context.stack.location = std::next(it);
+
 			}
 
 			std::advance(it, 1);

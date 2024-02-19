@@ -23,7 +23,7 @@
 
 	auto block = std::make_unique<expression_block>();
 	expression_token_stack stack(P_BRACKET_OPEN, P_BRACKET_CLOSE);
-
+	stack.item_list = false;
 	l_expression_results results = evaluate_expression_sanity(it, end, block, stack);
 
 	it = results.it;

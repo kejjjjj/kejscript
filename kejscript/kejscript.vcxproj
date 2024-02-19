@@ -159,6 +159,7 @@
     <ClCompile Include="runtime_exception.cpp" />
     <ClCompile Include="runtime_expression.cpp" />
     <ClCompile Include="script.cpp" />
+    <ClCompile Include="struct_sanity.cpp" />
     <ClCompile Include="tokenizer.cpp" />
     <ClCompile Include="variable.cpp" />
     <ClCompile Include="while_statement.cpp" />
