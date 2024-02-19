@@ -25,10 +25,13 @@ enum class datatype_e
 	bool_t,
 	int_t,
 	double_t,
+	string_t,
+	char_t
 };
 struct bool_dt;
 struct integer_dt;
 struct double_dt;
+struct string_dt;
 
 struct datatype
 {
@@ -40,6 +43,7 @@ struct datatype
 	virtual std::string type_str() const noexcept(true) = 0;
 	virtual std::string value_str() const noexcept(true) = 0;
 	virtual bool is_integral() const noexcept(true) = 0;
+	virtual bool is_numeric() const noexcept(true) = 0;
 	virtual bool bool_convertible() const noexcept(true) = 0;
 
 	void implicit_cast(datatype* other);
@@ -87,8 +91,13 @@ struct bool_dt : public datatype
 	std::string type_str() const noexcept(true) override { return "bool"; }
 	std::string value_str() const noexcept(true) override { return get() == true ? "true" : "false"; }
 	bool is_integral() const noexcept(true) override { return true; }
+	bool is_numeric() const noexcept(true) override { return true; }
 	bool bool_convertible() const noexcept(true) override { return true; }
 
+	//bool_dt operator-() const {
+	//	auto result = -this->get();
+	//	return (decltype(*this))(result);
+	//}
 	bool_dt operator+(const bool_dt& other) const {
 		bool result = this->get() + other.get();
 		return (decltype(*this))(result);
@@ -101,14 +110,26 @@ struct bool_dt : public datatype
 		bool result = this->get() == other.get();
 		return (decltype(*this))(result);
 	}
+	bool_dt operator!=(const bool_dt& other) const {
+		bool result = this->get() != other.get();
+		return (decltype(*this))(result);
+	}
 	bool_dt operator<(const bool_dt& other) const {
 		bool result = this->get() < other.get();
+		return (decltype(*this))(result);
+	}
+	bool_dt operator>(const bool_dt& other) const {
+		bool result = this->get() > other.get();
 		return (decltype(*this))(result);
 	}
 	bool_dt operator*(const bool_dt& other) const {
 		bool result = this->get() * other.get();
 		return (decltype(*this))(result);
 	}
+	//bool_dt operator/(const bool_dt& other) const {
+	//	bool result = this->get() / other.get();
+	//	return (decltype(*this))(result);
+	//}
 };
 
 struct integer_dt : public datatype
@@ -126,35 +147,49 @@ struct integer_dt : public datatype
 	std::string type_str() const noexcept(true) override { return "int"; }
 	std::string value_str() const noexcept(true) override { return std::to_string(get()); }
 	bool is_integral() const noexcept(true) override { return true; }
+	bool is_numeric() const noexcept(true) override { return true; }
 	bool bool_convertible() const noexcept(true) override { return true; }
+
 	void set(int32_t v) { *reinterpret_cast<int32_t*>(value.data()) = v; }
 
-
-	integer_dt operator+(const integer_dt& other) const {
-		auto result = this->get() + other.get();
-		LOG(std::format("{} + {} = {}\n", this->get(), other.get(), this->get() + other.get()));
+	auto operator-() const {
+		auto result = -this->get();
 		return (decltype(*this))(result);
 	}
-	integer_dt operator-(const integer_dt& other) const {
+	auto operator+(const integer_dt& other) const {
+		auto result = this->get() + other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator-(const integer_dt& other) const {
 		auto result = this->get() - other.get();
 		return (decltype(*this))(result);
 	}
-	integer_dt operator==(const integer_dt& other) const {
-		bool result = this->get() == other.get();
+	auto operator==(const integer_dt& other) const {
+		auto result = this->get() == other.get();
 		return (decltype(*this))(result);
 	}
-	integer_dt operator<(const integer_dt& other) const {
-		bool result = this->get() < other.get();
-		LOG(std::format("{} < {} = {}\n", this->get(), other.get(), this->get() < other.get()));
+	auto operator!=(const integer_dt& other) const {
+		auto result = this->get() != other.get();
 		return (decltype(*this))(result);
 	}
-	integer_dt operator%(const integer_dt& other) const {
-		int result = this->get() % other.get();
-		LOG(std::format("{} % {} = {}\n", this->get(), other.get(), this->get() % other.get()));
+	auto operator<(const integer_dt& other) const {
+		auto result = this->get() < other.get();
 		return (decltype(*this))(result);
 	}
-	integer_dt operator*(const integer_dt& other) const {
-		int result = this->get() * other.get();
+	auto operator>(const integer_dt& other) const {
+		auto result = this->get() > other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator%(const integer_dt& other) const {
+		auto result = this->get() % other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator*(const integer_dt& other) const {
+		auto result = this->get() * other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator/(const integer_dt& other) const {
+		auto result = this->get() / other.get();
 		return (decltype(*this))(result);
 	}
 };
@@ -174,31 +209,138 @@ struct double_dt : public datatype
 	std::string type_str() const noexcept(true) override { return "double"; }
 	std::string value_str() const noexcept(true) override { return std::to_string(get()); }
 	bool is_integral() const noexcept(true) override { return false; }
+	bool is_numeric() const noexcept(true) override { return true; }
+	
+	
 	bool bool_convertible() const noexcept(true) override { return true; }
 	void set(double v) { *reinterpret_cast<double*>(value.data()) = v; }
 
-	double_dt operator+(const double_dt& other) const {
+	auto operator-() const {
+		auto result = -this->get();
+		return (decltype(*this))(result);
+	}
+	auto operator+(const double_dt& other) const {
 		auto result = this->get() + other.get();
 		return (decltype(*this))(result);
 	}
-	double_dt operator-(const double_dt& other) const {
+	auto operator-(const double_dt& other) const {
 		auto result = this->get() - other.get();
 		return (decltype(*this))(result);
 	}
-	double_dt operator==(const double_dt& other) const {
-		bool result = this->get() == other.get();
+	auto operator==(const double_dt& other) const {
+		auto result = this->get() == other.get();
 		return (decltype(*this))(result);
 	}
-	double_dt operator<(const double_dt& other) const {
-		bool result = this->get() < other.get();
+	auto operator!=(const double_dt& other) const {
+		auto result = this->get() != other.get();
 		return (decltype(*this))(result);
 	}
-	double_dt operator*(const double_dt& other) const {
+	auto operator<(const double_dt& other) const {
+		auto result = this->get() < other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator>(const double_dt& other) const {
+		auto result = this->get() > other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator*(const double_dt& other) const {
 		auto result = this->get() * other.get();
 		return (decltype(*this))(result);
 	}
+	auto operator/(const double_dt& other) const {
+		auto result = this->get() / other.get();
+		return (decltype(*this))(result);
+	}
 };
+struct string_dt : public datatype
+{
+	~string_dt() = default;
 
+	string_dt(const std::vector<char>& v) {
+		value = v;
+	};
+	string_dt(const std::string& s) {
+		set(s);
+	}
+	size_t size_of() const noexcept(true) override { return value.size(); };
+	datatype_e type() const noexcept(true) override { return datatype_e::string_t; }
+	const auto& get() const noexcept { return value; }
+	const char* get_ptr() const noexcept { return value.data(); }
+
+	std::string type_str() const noexcept(true) override { return "string"; }
+	std::string value_str() const noexcept(true) override { return get_ptr(); }
+	bool is_integral() const noexcept(true) override { return false; }
+	bool is_numeric() const noexcept(true) override { return false; }
+	bool bool_convertible() const noexcept(true) override { return false; }
+
+	void set(const std::vector<char>& v) { value = v; }
+	void set(const std::string& v) {
+		value.clear();
+		std::for_each(v.begin(), v.end(), [&](char c) { value.push_back(c); });
+	}
+
+};
+struct char_dt : public datatype
+{
+	~char_dt() = default;
+
+	char_dt(char v) {
+		value = std::vector<char>(1, v);
+	};
+
+	size_t size_of() const noexcept(true) override { return sizeof(char); };
+	datatype_e type() const noexcept(true) override { return datatype_e::char_t; }
+	const char get() const noexcept { return value[0]; }
+
+	std::string type_str() const noexcept(true) override { return "char"; }
+	std::string value_str() const noexcept(true) override { std::string str; str.push_back(get()); return str; }
+	bool is_integral() const noexcept(true) override { return true; }
+	bool is_numeric() const noexcept(true) override { return true; }
+	bool bool_convertible() const noexcept(true) override { return true; }
+	void set(char v) { value = std::vector<char>(1, v); }
+
+	auto operator-() const {
+		char result = -this->get();
+		return (decltype(*this))(result);
+	}
+	auto operator+(const char_dt& other) const {
+		char result = this->get() + other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator-(const char_dt& other) const {
+		char result = this->get() - other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator==(const char_dt& other) const {
+		auto result = this->get() == other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator!=(const char_dt& other) const {
+		auto result = this->get() != other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator<(const char_dt& other) const {
+		auto result = this->get() < other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator>(const char_dt& other) const {
+		auto result = this->get() > other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator%(const char_dt& other) const {
+		char result = this->get() % other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator*(const char_dt& other) const {
+		char result = this->get() * other.get();
+		return (decltype(*this))(result);
+	}
+	auto operator/(const char_dt& other) const {
+		char result = this->get() / other.get();
+		return (decltype(*this))(result);
+	}
+
+};
 template<typename Base, typename CastType>
 inline constexpr Base datatype::create_type(const datatype& target)
 {
@@ -209,6 +351,8 @@ inline constexpr Base datatype::create_type(const datatype& target)
 		return static_cast<CastType>(datatype::cast_normal<integer_dt>(&target).get());
 	case datatype_e::double_t:
 		return static_cast<CastType>(datatype::cast_normal<double_dt>(&target).get());
+	case datatype_e::char_t:
+		return static_cast<CastType>(datatype::cast_normal<char_dt>(&target).get());
 	}
 
 	throw std::logic_error("yea");
@@ -223,6 +367,8 @@ inline constexpr Base datatype::create_type_copy(const Base& target)
 		return static_cast<CastType>(datatype::cast_normal<integer_dt>(&target).get());
 	case datatype_e::double_t:
 		return static_cast<CastType>(datatype::cast_normal<double_dt>(&target).get());
+	case datatype_e::char_t:
+		return static_cast<CastType>(datatype::cast_normal<char_dt>(&target).get());
 	}
 
 	throw std::logic_error("yea");

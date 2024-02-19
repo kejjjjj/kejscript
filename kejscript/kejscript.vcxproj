@@ -137,6 +137,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="datatype.cpp" />
+    <ClCompile Include="for_statement.cpp" />
+    <ClCompile Include="for_statement_sanity.cpp" />
     <ClCompile Include="function.cpp" />
     <ClCompile Include="if_statement.cpp" />
     <ClCompile Include="linting_evaluate.cpp" />

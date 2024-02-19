@@ -24,6 +24,11 @@ void variable::print(size_t spaces)
 			arr->print(spaces + 1);
 		}
 	}
+	else if (string)
+	{
+		std::cout << std::format("{}| <{}> ({}) @ 0x{:x}\n", prefix, "string", string->get_string(), ptrdiff_t(this));
+		return;
+	}
 
 	if (!obj) {
 

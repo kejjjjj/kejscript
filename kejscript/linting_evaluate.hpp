@@ -69,6 +69,7 @@ void evaluate_return_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& 
 void evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, const std::unique_ptr<conditional_block>&);
 void evaluate_else_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+void evaluate_for_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
 [[nodiscard]] ListTokenPtr::iterator evaluate_subscript_sanity(
 	ListTokenPtr::iterator begin, 

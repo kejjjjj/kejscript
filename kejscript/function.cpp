@@ -18,7 +18,7 @@ std::unique_ptr<operand> call_function(
 	auto arg = args.begin();
 	for (const auto& param : callee->def.parameters) {
 		stack_ptr->variables.push_back(std::make_shared<variable>(param));
-		evaluation_functions::assign_to_lvalue(stack_ptr->variables.back().get(), *arg->get());
+		evaluation_functions::assign_to_lvalue(stack_ptr->variables.back(), *arg);
 		++arg;
 	}
 

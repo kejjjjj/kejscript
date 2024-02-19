@@ -66,6 +66,11 @@ std::unique_ptr<token_t> script_t::read_token()
 			return nullptr;
 		}
 	}
+	else if (*script_p == '\"') {
+		if (!read_string_literal(*token)) {
+			return nullptr;
+		}
+	}
 	else {
 		if (!read_punctuation(token)) {
 			throw linting_error(this, "a token without a definition");
@@ -169,6 +174,7 @@ const std::unordered_map<std::string, tokentype_t> tokenMap = {
 	{"if",		tokentype_t::IF},
 	{"else",	tokentype_t::ELSE},
 	{"while",	tokentype_t::WHILE},
+	{"for",		tokentype_t::FOR},
 	{"true",	tokentype_t::_TRUE},
 	{"false",	tokentype_t::_FALSE}
 };
@@ -211,18 +217,79 @@ bool script_t::read_name(token_t& token)
 bool script_t::read_characterliteral(token_t& token)
 {
 	token.tt = tokentype_t::CHAR_LITERAL;
-	token.string.push_back(*script_p++);
+	script_p++;
+
+	if (script_p == scriptend_p)
+		return 0;
 
 	while (*script_p != '\'') {
 
 		if (script_p == scriptend_p)
 			return 0;
 
+		if (*script_p == '\n') {
+			line++;
+			column = 1ull;
+		}
+		else {
+			if (*script_p == '\t')
+				column += 4;
+			else
+				column++;
+		}
+
 		token.string.push_back(*script_p++);
 
 	}
-	token.string.push_back(*script_p++);
-	column += token.string.length();
+	script_p++;
+	column++;
+
+	std::vector<char> v;
+
+	for (auto& c : token.string)
+		v.push_back(c);
+
+	token.value = std::make_unique<std::vector<char>>(v);
+
+	return 1;
+}
+bool script_t::read_string_literal(token_t& token)
+{
+	token.tt = tokentype_t::STRING_LITERAL;
+	script_p++; //skip "
+
+	if (script_p == scriptend_p)
+		return 0;
+
+	while (*script_p != '\"') {
+
+		if (script_p == scriptend_p)
+			return 0;
+
+		if (*script_p == '\n') {
+			line++;
+			column = 1ull;
+		}
+		else {
+			if (*script_p == '\t')
+				column += 4;
+			else
+				column++;
+		}
+
+		token.string.push_back(*script_p++);
+
+	}
+	script_p++;  //skip "
+	column++;
+
+	std::vector<char> v;
+
+	for (auto& c : token.string)
+		v.push_back(c);
+
+	token.value = std::make_unique<std::vector<char>>(v);
+
 	return 1;
 }
 bool script_t::read_punctuation(std::unique_ptr<token_t>& token)

@@ -1,10 +1,74 @@
-fn owo()
+fn array_find_first_of(array, size, ch)
 {
-	return [1, 2];
+	for(def i = 0; i < size; ++i){
+		if(array[i] == ch){
+			return i;
+		}
+	}
+
+	return "shit";
+
+}
+fn array_find_last_of(array, size, ch)
+{
+	def latest = -1;
+
+	for(def i = 0; i < size; ++i){
+		if(array[i] == ch){
+			latest = i;
+		}
+	}
+	if(latest == -1){
+		return "shit";
+	}
+
+	return latest;
+
 }
 
+fn translate_result(result)
+{
+	if(result == "shit"){
+		return 69;
+	}
+	else{
+		return "xDDDD";
+	}
+}
+fn fill_object(obj, string, first, last, result1, result2)
+{
+	obj[0] = string;
+	obj[3][0] = first;
+	obj[3][1] = result1;
+	obj[4][0] = last;
+	obj[4][1] = result2;
+
+	return [ obj[3], obj[4] ];
+
+}
 fn main()
 {
-	def cum = [ [1, 2], [3, 4] ];
-	def a = owo()[0];
+	def wowsers = 
+	[
+		"",
+		12,
+		'o',
+		[0,0],
+		[0,0]
+	];
+
+	def source = "hello, world";
+
+	def v = fill_object
+	(
+		wowsers, 
+		source, 
+		array_find_first_of(source, wowsers[1], wowsers[2]), 
+		array_find_last_of(source, wowsers[1], wowsers[2] = '!'), 
+		translate_result(array_find_first_of(source, wowsers[1], wowsers[2] = 'o')), 
+		translate_result(array_find_last_of(source, wowsers[1], wowsers[2] = '!'))
+	);
+
+
+
 }

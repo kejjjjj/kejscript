@@ -20,7 +20,7 @@ public:
 	static void initialize_functions();
 
 	using funcptr = std::unique_ptr<operand>(*)(operand&, operand&);
-	using unaryfuncptr = void(*)(operand&);
+	using unaryfuncptr = operand_ptr(*)(operand_ptr&);
 
 	static funcptr find_function(const punctuation_e p) {
 		const auto found = eval_functions.find(p);
@@ -34,11 +34,11 @@ public:
 		const auto found = unary_functions.find(p);
 
 		if (found == unary_functions.end()) {
-			throw linting_error("unsupported operator");
+			throw linting_error("unsupported unary operator");
 		}
 		return found->second;
 	}
-	static void assign_to_lvalue(variable*, operand&);
+	static void assign_to_lvalue(std::shared_ptr<variable>& var, const operand_ptr&);
 
 private:
 
@@ -47,16 +47,21 @@ private:
 
 	static std::unique_ptr<operand> assignment(operand&, operand&);
 	static std::unique_ptr<operand> less_than(operand&, operand&);
+	static std::unique_ptr<operand> greater_than(operand&, operand&);
 	static std::unique_ptr<operand> modulo(operand&, operand&);
 	static std::unique_ptr<operand> multiplication(operand&, operand&);
+	static std::unique_ptr<operand> division(operand&, operand&);
+
 	static std::unique_ptr<operand> equality(operand&, operand&);
+	static std::unique_ptr<operand> unequality(operand&, operand&);
 
 	static std::unordered_map<punctuation_e, funcptr> eval_functions;
 
-	static void increment(operand&);
+	static operand_ptr increment(operand_ptr&);
+	static operand_ptr negate(operand_ptr&);
 
 	static std::unordered_map<punctuation_e, unaryfuncptr> unary_functions;
 
 
 };
-std::unique_ptr<operand> subscript(operand&, operand& expression);
+std::unique_ptr<operand> subscript(operand_ptr&, operand_ptr& expression);

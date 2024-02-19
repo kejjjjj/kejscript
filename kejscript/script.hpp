@@ -27,6 +27,8 @@ private:
 	bool read_name(token_t& token);
 	bool read_punctuation(std::unique_ptr<token_t>& token);
 	bool read_characterliteral(token_t& token);
+	bool read_string_literal(token_t& token);
+
 	bool parse_int(token_t& token);
 
 

@@ -32,14 +32,20 @@ struct operand
 	void implicit_cast(datatype* other);
 
 	void implicit_cast(operand& other, datatype* l, datatype* r);
-	bool has_value() noexcept;
-	bool is_integral();
-	bool bool_convertible();
+	bool has_value()  const noexcept;
+	bool is_integral() const noexcept;
+	bool is_numeric() const noexcept;
+	bool bool_convertible() const noexcept;
+
+	bool is_compatible_with(const operand& other) const;
 
 	datatype* lvalue_to_rvalue();
-	std::unique_ptr<operand> create_copy();
 	datatype* get_value();
+	datatype* get_value() const;
+
 	token_t* _operand = nullptr;
+
+	std::shared_ptr<string_object> string;
 
 	std::shared_ptr<object> is_object() const noexcept
 	{
@@ -53,6 +59,34 @@ struct operand
 		return nullptr;
 	}
 
+	std::shared_ptr<string_object> is_string() const noexcept
+	{
+		if (string)
+			return string;
+
+		if (type == Type::LVALUE) {
+			auto& var = std::get<std::shared_ptr<variable>>(value);
+
+			if (var->string)
+				return var->string;
+		}
+
+		return nullptr;
+
+	}
+	bool is_string_literal()
+	{
+		return !is_object() && type == Type::RVALUE && get_value()->type() == datatype_e::string_t;
+	}
+
+	std::string get_type() const noexcept
+	{
+		if (is_object())
+			return "object";
+
+		return get_value()->type_str();
+	}
+
 	//std::shared_ptr<object> obj;
 
 private:
@@ -64,7 +98,7 @@ private:
 struct object
 {
 	object() = default;
-	~object() { LOG("~object\n"); }
+	//~object() { LOG("~object\n"); }
 	void insert(operand_ptr& ptr) {
 
 
@@ -88,5 +122,36 @@ struct object
 
 	std::vector<std::shared_ptr<variable>> variables;
 	NO_COPY_CONSTRUCTOR(object);
+
+};
+
+struct string_object
+{
+	string_object() = default;
+
+	void insert(char c) {
+
+		variables.push_back(std::make_shared<variable>());
+		auto& back = variables.back();
+
+		back->value = std::make_unique<char_dt>(c);
+		back->identifier = "character";
+		back->initialized = true;
+	}
+
+	std::string get_string() const noexcept 
+	{
+		std::string str;
+
+		for (auto& v : variables)
+			str.push_back(v->value->getvalue<char_dt>().get());
+
+		return str;
+	}
+	//std::shared_ptr<string_dt> raw_data;
+	//std::shared_ptr<variable> owner;
+	std::vector<std::shared_ptr<variable>> variables;
+	//std::string actual_string;
+	NO_COPY_CONSTRUCTOR(string_object);
 
 };

@@ -102,6 +102,12 @@
     <ClCompile Include="variable.cpp">
       <Filter>Source Files\runtime</Filter>
     </ClCompile>
+    <ClCompile Include="for_statement_sanity.cpp">
+      <Filter>Source Files\linting\sanity_checks</Filter>
+    </ClCompile>
+    <ClCompile Include="for_statement.cpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.hpp">

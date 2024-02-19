@@ -28,12 +28,15 @@ enum punctuation_e : char
 	P_SUB,
 
 	P_LESS_THAN,
+	P_GREATER_THAN,
 
 	P_ASSIGN,
 
 	P_EQUALITY,
+	P_UNEQUALITY,
 	P_MODULO,
 	P_MULTIPLICATION,
+	P_DIVISION,
 
 	P_INCREMENT,
 
@@ -64,22 +67,26 @@ const static punctuation_t punctuations[] =
 	//needs to be sorted from longest string to shortest
 
 	{"==", P_EQUALITY, RELATIONAL },
+	{"!=", P_UNEQUALITY, RELATIONAL },
+
 	{"++", P_INCREMENT, UNARY},
 
 	{"+", P_ADD, ADDITIVE},
 	{"-", P_SUB, ADDITIVE},
 
 	{"<", P_LESS_THAN, EQUALITY},
+	{">", P_GREATER_THAN, EQUALITY},
 
 	{"%", P_MODULO, MULTIPLICATIVE},
 	{"*", P_MULTIPLICATION, MULTIPLICATIVE},
+	{"/", P_DIVISION, MULTIPLICATIVE},
 
 	{"=", P_ASSIGN, ASSIGNMENT},
 
-	{"(", P_PAR_OPEN, FAILURE},
+	{"(", P_PAR_OPEN, POSTFIX},
 	{")", P_PAR_CLOSE, FAILURE},
 
-	{"[", P_BRACKET_OPEN, FAILURE},
+	{"[", P_BRACKET_OPEN, POSTFIX},
 	{"]", P_BRACKET_CLOSE, FAILURE},
 
 	{"{", P_CURLYBRACKET_OPEN, FAILURE},

@@ -37,7 +37,7 @@ void evaluate_while_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 	it = evaluate_expression_sanity(it, end, while_block->condition, stack).it;
 
 	if (it->get()->is_operator(P_PAR_CLOSE) == false) {
-		throw linting_error(it->get(), "expected a '%s'", punctuations[P_PAR_CLOSE].identifier.c_str());
+		throw linting_error(it->get(), "expected a ')'");
 	}
 
 	if (VECTOR_PEEK(it, 1, end) == false) {

@@ -10,14 +10,14 @@ bool expression_block::execute(function_stack* stack)
 	evaluate_expression(owner, stack, expression_ast);
 	return false;
 }
-static void evaluate_unary(operand& target, const nodeptr& node)
+static void evaluate_unary(operand_ptr& target, const nodeptr& node)
 {
 	if (node->is_unary() == false)
 		return;
 
 	auto& op = node->get_operator();
 
-	reinterpret_cast<evaluation_functions::unaryfuncptr>(op->eval)(target);
+	target = std::move(reinterpret_cast<evaluation_functions::unaryfuncptr>(op->eval)(target));
 	return evaluate_unary(target, node->left);
 
 }
@@ -25,8 +25,6 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 {
 	if (node->is_postfix() == false)
 		return;
-
-	std::cout << "eval postfix\n";
 
 	auto& op = node->get_operator();
 	
@@ -36,17 +34,30 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 
 		expression_block* arg = function->arguments.get();
 		std::list<std::unique_ptr<operand>> args;
+		size_t argc = 1;
 		while (arg) {
-			args.push_back(evaluate_expression(owner, stack, arg->expression_ast));
+			auto expr = evaluate_expression(owner, stack, arg->expression_ast);
+
+			if (!expr) {
+				std::string s_argc = std::to_string(argc);
+				throw runtime_error(target->_operand, "attempted to pass a null value to function (argument %s)", s_argc.c_str());
+			}
+			args.push_back(std::move(expr));
 			arg = arg->next.get();
+			++argc;
 		}
 		target = call_function(owner, function->target, args, stack);
+
+		if (!target) //function didn't return a value
+			return;
 
 	}
 	else if (op->block->type() == code_block_e::EXPRESSION) { //subscript
 
 		auto expression = evaluate_expression(owner, stack, node->right);
-		target = subscript(*target, *expression);
+		target = subscript(target, expression);
+
+
 	}
 
 	target->_operand = op->token;
@@ -84,13 +95,20 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 
 	if (node->is_postfix()) {
 		auto expression = evaluate_expression(owner, stack, node->left);
+
+		if(!expression)
+			throw runtime_error(node->left->get_token(), "null value in postfix expression");
+
+
 		evaluate_postfix(owner, stack, expression, node);
 		return std::move(expression);
 	}
 
 	if (node->is_unary()) {
 		auto expression = evaluate_expression(owner, stack, node->left);
-		evaluate_unary(*expression.get(), node);
+		if (!expression)
+			throw runtime_error(node->left->get_token(), "null value in unary expression");
+		evaluate_unary(expression, node);
 		return std::move(expression);
 	}
 
@@ -103,18 +121,29 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 	auto left_operand = evaluate_expression(owner, stack, node->left);
 	auto right_operand = evaluate_expression(owner, stack, node->right);
 
-	//if (left_operand->has_value() == false) {
-	//	throw runtime_error(left_operand->_operand, "left operand does not have a value");
-	//}else if (right_operand->has_value() == false) {
-	//	throw runtime_error(right_operand->_operand, "right operand does not have a value");
-	//}
+	if (!left_operand || !right_operand) {
+		throw runtime_error(node->get_token(), "the operand does not have a value");
+	}
 
 	auto& op = node->get_operator();
+
+	if (
+		op->punc != P_ASSIGN &&
+		op->punc != P_EQUALITY &&
+		op->punc != P_UNEQUALITY
+		&& left_operand->is_compatible_with(*right_operand.get()) == false) {
+		throw runtime_error(left_operand->_operand, "an operand of type '%s' is not compatible with an operand of type '%s'",
+			left_operand->get_type().c_str(), right_operand->get_type().c_str());
+	}
+
 	auto ret = reinterpret_cast<evaluation_functions::funcptr>(op->eval)(*left_operand, *right_operand);
-	if(right_operand->_operand)
-		ret->_operand = right_operand->_operand;
-	else if (left_operand->_operand)
-		ret->_operand = left_operand->_operand;
+
+	ret->_operand = node->get_token();
+
+	//if(right_operand->_operand)
+	//	ret->_operand = right_operand->_operand;
+	//else if (left_operand->_operand)
+	//	ret->_operand = left_operand->_operand;
 
 	return ret;
 }

@@ -82,6 +82,8 @@ void evaluate_identifier_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterat
 		return evaluate_else_sanity(it, to);
 	case tokentype_t::WHILE:
 		return evaluate_while_sanity(it, to);
+	case tokentype_t::FOR:
+		return evaluate_for_sanity(it, to);
 	}
 
 	auto block = std::make_unique<expression_block>();

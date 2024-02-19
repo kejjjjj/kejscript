@@ -28,7 +28,8 @@ enum class tokentype_t : uint8_t
 	RETURN,
 	IF,
 	ELSE,
-	WHILE
+	WHILE,
+	FOR
 };
 
 struct code_block;
@@ -156,6 +157,7 @@ enum class code_block_e : uint8_t
 	FUNCTION,
 	CONDITIONAL,
 	WHILE,
+	FOR,
 	FN_CALL,
 	EXPRESSION,
 	RETURN,
@@ -270,6 +272,16 @@ struct while_block : public code_block
 	std::unique_ptr<expression_block> condition; //I don't want to initialize it in the constructor just to be a bit more explicit
 	bool execute(struct function_stack* stack) override;
 	code_block_e type() const noexcept(true) override { return code_block_e::WHILE; }
+};
+struct for_block : public code_block
+{
+	for_block() = default;
+	~for_block() = default;
+	std::unique_ptr<expression_block> initialization;
+	std::unique_ptr<expression_block> condition;
+	std::unique_ptr<expression_block> execution;
+	bool execute(struct function_stack* stack) override;
+	code_block_e type() const noexcept(true) override { return code_block_e::FOR; }
 };
 struct return_statement : public code_block
 {
@@ -399,6 +411,15 @@ struct ast_node
 
 	bool is_list() const noexcept { return type == OPERAND && std::get<std::unique_ptr<singular>>(contents)->initializers; }
 	auto& get_list() { return std::get<std::unique_ptr<singular>>(contents)->initializers; }
+	
+	token_t* get_token() const 
+	{
+		if (type == OPERAND)
+			return std::get<std::unique_ptr<singular>>(contents)->token;
+
+		return std::get<operator_ptr>(contents)->token;
+	}
+
 	void make_operator(operator_ptr& op) {
 		contents = std::move(op);
 		type = OPERATOR;
