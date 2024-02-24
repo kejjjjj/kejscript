@@ -43,3 +43,42 @@ void variable::print(size_t spaces)
 
 
 }
+void variable::print2() const
+{
+	print_internal();
+	std::cout << " : " << identifier << '\n';
+}
+void variable::print_internal(bool is_member) const
+{
+	if (obj) {
+
+		std::cout << "[ ";
+		
+		for (auto& arr : obj->variables) {
+
+			bool member = (arr == obj->variables.back());
+			arr->print_internal(member ? false : true);
+		}
+
+		std::cout << (is_member ? " ], " : " ]");
+		return;
+	}
+	 
+	const std::string postfix = is_member ? ", " : "";
+
+	if (string)
+	{
+		std::cout << std::quoted(string->get_string()) << postfix;
+		return;
+	}
+
+
+	if (value){
+		std::cout << value->value_str() << postfix;
+	}
+	else
+		std::cout << "NULL" << postfix;
+
+
+
+}

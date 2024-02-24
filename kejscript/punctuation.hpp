@@ -50,6 +50,7 @@ enum punctuation_e : char
 	P_CURLYBRACKET_CLOSE,
 
 	P_COMMA,
+	P_PERIOD,
 	P_SEMICOLON,
 
 	P_UNKNOWN,
@@ -93,6 +94,7 @@ const static punctuation_t punctuations[] =
 	{"}", P_CURLYBRACKET_CLOSE, FAILURE},
 
 	{",", P_COMMA},
+	{".", P_PERIOD, POSTFIX},
 	{";", P_SEMICOLON }
 };
 

@@ -14,9 +14,15 @@ operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr
 	auto& oper = expr.v;
 
 	if (oper.type == validation_expression::Type::OTHER) {
-		const auto& table = stack->variables;
 
-		auto& r = table[ std::get<validation_expression::other>(oper.value).variable_index ];
+		std::vector<std::shared_ptr<variable>>* ref;
+
+		if (expr.structure && stack->_this)
+			ref = &stack->_this->variables;
+		else
+			ref = &stack->variables;
+
+		auto& r = (*ref)[ std::get<validation_expression::other>(oper.value).variable_index ];
 		
 		value = r;
 		type = Type::LVALUE;

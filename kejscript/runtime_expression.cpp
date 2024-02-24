@@ -4,6 +4,7 @@
 #include "runtime_exception.hpp"
 #include "operators.hpp"
 #include "function.hpp"
+#include "structs.hpp"
 
 bool expression_block::execute(function_stack* stack)
 {
@@ -52,11 +53,54 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 			return;
 
 	}
+	else if (op->block->type() == code_block_e::STRUCT_CALL) {
+
+		auto function = dynamic_cast<struct_call*>(op->block.get());
+
+		expression_block* arg = function->arguments.get();
+		std::list<std::unique_ptr<operand>> args;
+		size_t argc = 1;
+		while (arg) {
+			auto expr = evaluate_expression(owner, stack, arg->expression_ast);
+
+			if (!expr) {
+				std::string s_argc = std::to_string(argc);
+				throw runtime_error(target->_operand, "attempted to pass a null value to function (argument %s)", s_argc.c_str());
+			}
+			args.push_back(std::move(expr));
+			arg = arg->next.get();
+			++argc;
+		}
+
+		target = call_constructor(function, args, stack);
+
+		if (!target) //function didn't return a value (should never happen?)
+			return;
+
+	}
 	else if (op->block->type() == code_block_e::EXPRESSION) { //subscript
 
 		auto expression = evaluate_expression(owner, stack, node->right);
 		target = subscript(target, expression);
 
+
+	}
+	else if (op->block->type() == code_block_e::MEMBER_ACCESS) {
+		auto member = dynamic_cast<member_access_block*>(op->block.get());
+
+		auto obj = target->is_object();
+
+		if (!obj || !obj->structure)
+			throw runtime_error(node->get_token(), "operand is not a struct");
+
+		auto var = obj->structure->quick_lookup[member->member].var_index;
+
+		if (var == -1) {
+			std::string wtf = member->member;
+			throw runtime_error(node->get_token(), "'%s' is not a member of '%s'", wtf.c_str(), obj->structure->identifier.c_str());
+		}
+
+		target = create_lvalue(obj->variables[var]);
 
 	}
 

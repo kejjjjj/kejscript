@@ -16,6 +16,7 @@ class linting_scope
 public:
 	linting_scope() = default;
 	bool is_global_scope() const noexcept { return lower_scope == nullptr; }
+	bool is_struct_scope() const noexcept { return scope_type == scope_type_e::STRUCT; }
 	bool declare_variable(const std::string& name) {  
 		if (variable_exists(name))
 			return false;
@@ -35,12 +36,6 @@ public:
 		return lower_scope->variable_exists(name); 
 	}
 
-	void print_stack() const noexcept {
-		//LOG("----- local vars -----\n\n");
-		//for (auto& v : variable_table)
-		//	LOG(v << '\n');
-		//LOG('\n');
-	}
 	bool is_function_scope() const noexcept {
 		return is_inside_of_a_function;
 	}
@@ -51,9 +46,20 @@ public:
 	std::optional<scope_type_e> get_previous_scope_context() const noexcept {
 		return upper_scope_type != scope_type_e::UNKNOWN ? std::make_optional(upper_scope_type) : std::nullopt;
 	}
+	bool is_within_struct() const noexcept
+	{
+		if (scope_type == scope_type_e::STRUCT)
+			return true;
 
+		if(lower_scope)
+			return lower_scope->is_within_struct();
+
+		return false;
+	}
 	linting_scope* lower_scope = 0;
+
 	bool is_inside_of_a_function = false;
+	bool returning_allowed = true;
 	//code_block* block = nullptr;
 
 	scope_type_e scope_type = scope_type_e::UNKNOWN;

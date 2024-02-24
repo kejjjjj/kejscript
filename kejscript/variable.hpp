@@ -22,8 +22,10 @@ struct variable
 	bool immutable = false;
 
 	void print(size_t spaces = 0);
+	void print2() const;
 
 private:
+	void print_internal(bool is_member = false) const;
 
 	NO_COPY_CONSTRUCTOR(variable);
 

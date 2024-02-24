@@ -9,23 +9,7 @@ void linting_data::validate(ListTokenPtr::iterator it, ListTokenPtr::iterator en
 	auto& codepos = it;
 
 	while (codepos != end) {
-		const auto parser_required = get_codeblock_type(codepos, end);
-
-		switch (parser_required) {
-		case codeblock_parser_type::CREATE_SCOPE:
-			active_scope = linting_create_scope_without_range(active_scope);
-			break;
-		case codeblock_parser_type::DELETE_SCOPE:
-			active_scope = linting_delete_scope(it, active_scope);
-			break;
-		default:
-			evaluate_identifier_sanity(codepos, end);
-			break;
-		}
-
-		if (codepos == end)
-			throw linting_error((--end++)->get(), "this is a temporary error but it happened because an unexpected eof was encountered!");
-
+		evaluate_identifier_sanity(codepos, end);
 		++codepos;
 	}
 
@@ -45,29 +29,17 @@ void linting_data::validate(ListTokenPtr::iterator it, ListTokenPtr::iterator en
 
 }
 
-codeblock_parser_type get_codeblock_type(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
-{
-	if (it == end)
-		throw linting_error("get_codeblock_type(): it == end");
-
-	if (it->get()->is_punctuation()) {
-		auto punc = dynamic_cast<punctuation_token_t*>(it->get())->punc;
-
-		if (punc == punctuation_e::P_CURLYBRACKET_OPEN) {
-			return codeblock_parser_type::CREATE_SCOPE;
-		}else if (punc == punctuation_e::P_CURLYBRACKET_CLOSE) {
-			return codeblock_parser_type::DELETE_SCOPE;
-		}
-	}
-
-	return codeblock_parser_type::DEFAULT; //hardcoded to this for now
-
-}
-
 void evaluate_identifier_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to)
 {
+	auto& data = linting_data::getInstance();
 
-	//LOG("calling evaluate_identifier_sanity()\n");
+	if (it->get()->is_operator(P_CURLYBRACKET_OPEN)) {
+		data.active_scope = linting_create_scope_without_range(data.active_scope);
+		return;
+	}else if (it->get()->is_operator(P_CURLYBRACKET_CLOSE)) {
+		data.active_scope = linting_delete_scope(it, data.active_scope);
+		return;
+	}
 
 	switch (it->get()->tt) {
 	case tokentype_t::DEF:

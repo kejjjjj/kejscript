@@ -5,20 +5,10 @@
 
 void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, function_def& def);
 
-void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
+std::unique_ptr<function_block> parse_function_declaration(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, bool allow_returning)
 {
 	auto& data = linting_data::getInstance();
-	
-	if (data.active_scope->is_global_scope() == false) {
-		throw linting_error(it->get(), "function declarations are only allowed in the global scope");
-	}
 
-	if (VECTOR_PEEK(it, 1, end) == false || std::next(it)->get()->is_identifier() == false) {
-		throw linting_error(it->get(), "expected a name for the function");
-	}
-
-	std::advance(it, 1); //skip fn
-	
 	function_def funcdef;
 
 	funcdef.identifier = it->get()->string;
@@ -34,16 +24,17 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 	//create the scope for the function
 	data.active_scope = linting_create_scope_without_range(data.active_scope);
 	data.active_scope->is_inside_of_a_function = true;
-
+	data.active_scope->returning_allowed = allow_returning; //can only return void (constructors)
 	//start parsing the parameters
 
-	if(VECTOR_PEEK(it, 1, end) == false)
+	if (VECTOR_PEEK(it, 1, end) == false)
 		throw linting_error(it->get(), "WHAT ARE THESE RANDOM END OF FILES!!!!");
 
 	//if the the next punctuation mark is a closing parenthesis then there is no point in parsing the parameters
 	if (std::next(it)->get()->is_operator(P_PAR_CLOSE) == false) {
 		parse_parameters(it, end, data.active_scope, funcdef);
-	}else
+	}
+	else
 		std::advance(it, 1); //skip to the ')' if there are no parameters
 
 	if (VECTOR_PEEK(it, 1, end) == false) {
@@ -59,13 +50,31 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 		throw linting_error("expected a '}' but encountered EOF");
 	}
 
-
-
 	auto func = std::make_unique<function_block>(funcdef);
+
+	return std::move(func);
+}
+
+void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
+{
+	auto& data = linting_data::getInstance();
+	
+	if (data.active_scope->is_global_scope() == false) {
+		throw linting_error(it->get(), "function declarations are only allowed in the global scope");
+	}
+
+	if (VECTOR_PEEK(it, 1, end) == false || std::next(it)->get()->is_identifier() == false) {
+		throw linting_error(it->get(), "expected a name for the function");
+	}
+
+	std::advance(it, 1); //skip fn
+
+	auto func = parse_function_declaration(it, end);
+
 	if (func->def.identifier == "main")
 		func->entrypoint = true;
+
 	data.current_function = data.function_declare(func).get();
-	//std::cout << "loc: " << data.current_function << '\n';
 
 }
 
@@ -131,6 +140,10 @@ void evaluate_return_sanity(ListTokenPtr::iterator& it, [[maybe_unused]]ListToke
 		move_block_to_current_context(ret);
 		return;
 	}
+
+	if (c_data.active_scope->returning_allowed == false)
+		throw linting_error(it->get(), "returning a value from this function is not allowed");
+
 	ret->expression = std::make_unique<expression_block>();
 	it = evaluate_expression_sanity(it, end, ret->expression).it;
 	move_block_to_current_context(ret);

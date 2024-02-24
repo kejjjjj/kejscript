@@ -9,9 +9,8 @@ linting_scope* linting_create_scope_without_range(linting_scope* block)
 
 	linting_scope* scope = (new linting_scope); //one could say this is bad but it's so well memory managed that it's ok :)
 	
-	if (block->is_inside_of_a_function)
-		scope->is_inside_of_a_function = true;
-
+	scope->is_inside_of_a_function = block->is_inside_of_a_function;
+	scope->returning_allowed = block->returning_allowed;
 	scope->lower_scope = block;
 
 	return scope;
@@ -24,7 +23,6 @@ linting_scope* linting_delete_scope([[maybe_unused]] ListTokenPtr::iterator& it,
 		throw linting_error(it->get(), "found a '}' but it's not closing anything\n");
 	}
 
-	block->print_stack();
 	linting_scope* temp_block = block->lower_scope;
 
 	auto& f = linting_data::getInstance().current_function;

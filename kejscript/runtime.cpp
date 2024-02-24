@@ -38,7 +38,7 @@ void runtime::execute()
 	//LOG("\n\n-----returning from: " << entry_point->def.identifier << "-----\n\n");
 
 	for (auto& v : main_stack->variables) {
-		v->print();
+		v->print2();
 	}
 	std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
 

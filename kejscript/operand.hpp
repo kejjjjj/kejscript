@@ -15,8 +15,7 @@ struct operand
 	enum class Type
 	{
 		LVALUE,
-		RVALUE,
-		RVALUE_ARRAY
+		RVALUE
 	}type = Type::LVALUE;
 
 	operand() = default;
@@ -99,12 +98,11 @@ struct object
 {
 	object() = default;
 	//~object() { LOG("~object\n"); }
-	void insert(operand_ptr& ptr) {
 
-
+	void insert(operand_ptr& ptr, const std::string& identifier="") {
 		auto obj = ptr->is_object();
 
-		variables.push_back(std::make_shared<variable>());
+		variables.push_back(std::make_shared<variable>(identifier));
 		auto& back = variables.back();
 
 		if (!obj) {
@@ -119,8 +117,17 @@ struct object
 			back->initialized = true;
 		}
 	}
+	void insert(const std::string& identifier="")
+	{
+		variables.push_back(std::make_shared<variable>(identifier));
+		auto& back = variables.back();
+	
+		back->initialized = false;
 
+	}
+	struct_def* structure = 0;
 	std::vector<std::shared_ptr<variable>> variables;
+	bool is_struct = false;
 	NO_COPY_CONSTRUCTOR(object);
 
 };

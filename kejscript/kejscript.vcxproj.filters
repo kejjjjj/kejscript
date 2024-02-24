@@ -111,6 +111,9 @@
     <ClCompile Include="struct_sanity.cpp">
       <Filter>Source Files\linting\sanity_checks</Filter>
     </ClCompile>
+    <ClCompile Include="structs.cpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.hpp">
@@ -159,6 +162,9 @@
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
     <ClInclude Include="function.hpp">
+      <Filter>Source Files\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="structs.hpp">
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
   </ItemGroup>

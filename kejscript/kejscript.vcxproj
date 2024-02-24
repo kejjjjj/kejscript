@@ -159,6 +159,7 @@
     <ClCompile Include="runtime_exception.cpp" />
     <ClCompile Include="runtime_expression.cpp" />
     <ClCompile Include="script.cpp" />
+    <ClCompile Include="structs.cpp" />
     <ClCompile Include="struct_sanity.cpp" />
     <ClCompile Include="tokenizer.cpp" />
     <ClCompile Include="variable.cpp" />
@@ -180,6 +181,7 @@
     <ClInclude Include="runtime_exception.hpp" />
     <ClInclude Include="runtime_expression.hpp" />
     <ClInclude Include="script.hpp" />
+    <ClInclude Include="structs.hpp" />
     <ClInclude Include="tokenizer.hpp" />
     <ClInclude Include="variable.hpp" />
   </ItemGroup>

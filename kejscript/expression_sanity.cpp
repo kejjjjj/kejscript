@@ -90,6 +90,27 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, e
 
 	s->owner = linting_data::getInstance().current_function;
 	s->token = identifier_it->get();
+
+	auto& data = linting_data::getInstance();
+
+	if (data.active_struct) {
+
+		auto _struct = data.active_struct;
+
+		bool found = false;
+
+		for (auto& v : _struct->initializers) {
+
+			if (v->variable == identifier_it->get()->string) {
+				found = true;
+				break;
+			}
+
+		}
+		if(found)
+			s->structure = data.active_struct;
+	}
+
 	context.ex.push_back(std::move(s));
 }
 
@@ -292,6 +313,9 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 					context.stack.location = std::next(it);
 
 			}
+
+			//std::cout << "to: " << it->get()->string << ": " << it->get()->format_position() << '\n';
+
 			std::advance(it, 1);
 			return;
 		}
@@ -339,9 +363,18 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 	if (token->tt == tokentype_t::IDENTIFIER) {
 
 		//make sure it exists in the stack before it's used
-		auto scope = linting_data::getInstance().active_scope;
 		auto& data = linting_data::getInstance();
-		if (scope->variable_exists(token->string) == false && !data.function_exists(token->string)) {
+		auto scope = data.active_scope;
+
+		if (data.struct_exists(token->string)) {
+
+			if (!std::next(it)->get()->is_operator(P_PAR_OPEN)) {
+				throw linting_error(std::next(it)->get(), "expected a '('");
+			}
+
+		}
+		else if (scope->variable_exists(token->string) == false 
+			&& !data.function_exists(token->string)) {
 			throw linting_error(token, "the identifier '%s' is undefined", token->string.c_str());
 		}
 
@@ -387,20 +420,15 @@ void peek_postfix_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 
 	iter = context.operators.begin();
 	std::advance(iter, context.size_excluding_postfix);
-	//context.operators.push_back(
-	//	std::make_unique<_operator>(
-	//		ptr->priority, 
-	//		ptr->punc, 
-	//		nullptr, 
-	//		operator_type::POSTFIX,
-	//		it->get()
-	//	));
 
 	if (ptr->punc == P_BRACKET_OPEN) {
 		it = evaluate_subscript_sanity(it, end, context, iter);
 	}
 	else if (ptr->punc == P_PAR_OPEN) {
 		it = evaluate_function_call_sanity(it, end, context, iter);
+	}
+	else if (ptr->punc == P_PERIOD) {
+		it = evaluate_member_access_sanity(it, end, iter);
 	}
 	else
 		it = linting_data::getInstance().tokens->erase(it);

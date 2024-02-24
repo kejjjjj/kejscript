@@ -23,6 +23,9 @@ bool is_postfix_operator(const punctuation_e p)
 	if (p == P_PAR_OPEN)
 		return true;
 
+	if (p == P_PERIOD)
+		return true;
+
 	return false;
 }
 

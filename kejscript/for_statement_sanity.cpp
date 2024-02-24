@@ -15,7 +15,7 @@ static bool initialization_has_declaration(ListTokenPtr::iterator& it)
 		throw linting_error(it->get(), "expected an identifier");
 
 	if (data.active_scope->declare_variable(it->get()->string) == false)
-		throw linting_error(it->get(), "the variable '%s' is already defined");
+		throw linting_error(it->get(), "the variable '%s' is already defined", it->get()->string.c_str());
 
 	LOG("declaring: '" << it->get()->string << "'\n");
 

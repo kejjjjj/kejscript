@@ -3,15 +3,6 @@
 #include "pch.hpp"
 
 
-enum class codeblock_parser_type : char
-{
-	PREPROCESSOR,
-	DEFAULT,
-	CREATE_SCOPE,
-	DELETE_SCOPE
-
-};
-
 enum class tokentype_t : uint8_t
 {
 	UNKNOWN,
@@ -156,10 +147,16 @@ struct function_def
 enum class code_block_e : uint8_t
 {
 	FUNCTION,
+	
+	//ANYTHING BELOW THIS COMMENT INCREASES NESTING
 	CONDITIONAL,
-	WHILE,
 	FOR,
+	WHILE,
+	//ANYTHING ABOVE THIS COMMENT INCREASES NESTING
+
 	FN_CALL,
+	STRUCT_CALL,
+	MEMBER_ACCESS,
 	EXPRESSION,
 	RETURN,
 	INITIALIZER_LIST
@@ -180,6 +177,7 @@ struct code_block
 	std::list<std::unique_ptr<code_block>> contents;
 };
 struct ast_node;
+
 struct function_block
 {
 	function_block(const function_def& d) : def(d){}
@@ -189,18 +187,9 @@ struct function_block
 		instructions.push_back(std::move(instruction));
 		blocks.push_back(instructions.back().get());
 	}
-	size_t get_index_for_variable(const std::string_view& target) {
-		size_t i = 0;
-		
-		for (auto& v : def.variables) {
-			if (!v.compare(target)) {
-				return i;
-			}
-			++i;
-		}
-		assert("get_index_for_variable(): didn't find variable.. how?");
-		return 0;
-	}
+	size_t get_index_for_variable(const std::string_view& target);
+
+	struct struct_def* structure = 0;
 	std::list<std::unique_ptr<code_block>> instructions;
 	std::vector<code_block*> blocks; //keeps track of the current codeblock (points to the instructions list)
 	//struct function_stack* stack = 0;
@@ -293,16 +282,45 @@ struct return_statement : public code_block
 	code_block_e type() const noexcept(true) override { return code_block_e::RETURN; }
 
 };
+
+//the calling of a constructor
+struct struct_call : public code_block
+{
+	struct_call() = default;
+	~struct_call() = default;
+	function_block* target = 0;
+	struct_def* target_struct = 0;
+	std::unique_ptr<expression_block> arguments;
+	bool execute([[maybe_unused]] struct function_stack* stack) override { return false; }; //implement!
+	code_block_e type() const noexcept(true) override { return code_block_e::STRUCT_CALL; }
+};
+struct member_access_block : public code_block
+{
+	member_access_block() = default;
+	~member_access_block() = default;
+
+	std::string member;
+
+	bool execute([[maybe_unused]] struct function_stack* stack) override { return false; }; //implement!
+	code_block_e type() const noexcept(true) override { return code_block_e::MEMBER_ACCESS; }
+};
 struct variable_initializer
 {
 	std::string variable;
 	std::unique_ptr<expression_block> initializer;
+};
+struct quick_var_lookup
+{
+	ptrdiff_t var_index = -1;
 };
 struct struct_def
 {
 	struct_def() = default;
 	std::string identifier;
 	std::vector<std::unique_ptr<variable_initializer>> initializers;
+	std::vector<std::unique_ptr<function_block>> constructors;
+
+	std::unordered_map<std::string, quick_var_lookup> quick_lookup = {};
 
 	NO_COPY_CONSTRUCTOR(struct_def);
 
@@ -383,6 +401,7 @@ struct singular {
 	validation_expression v;
 	token_t* token = nullptr;
 	function_block* owner = 0; // the function that owns this operand
+	struct_def* structure = 0;
 	//std::unique_ptr<function_call> callable;
 
 	struct postfix

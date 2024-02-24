@@ -19,6 +19,7 @@ struct linting_data
 {
 	static linting_data& getInstance() { static linting_data d; return d; }
 	linting_scope* active_scope = 0;
+	struct_def* active_struct = 0;
 	function_block* current_function = 0;
 	ListTokenPtr* tokens = 0;
 	std::unordered_map<std::string, function_def> existing_funcs;
@@ -44,7 +45,7 @@ struct linting_data
 		
 	}
 	bool struct_exists(const std::string& s) const { return structs.find(s) != structs.end(); }
-
+	auto get_struct_data(const std::string& s) const { return structs.find(s)->second.get(); }
 	auto& struct_declare(std::unique_ptr<struct_def>& _struct) {
 
 		if (struct_exists(_struct->identifier))
@@ -70,13 +71,14 @@ struct l_expression_results
 
 };
 
-codeblock_parser_type get_codeblock_type(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
-
 void evaluate_identifier_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
 void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 [[nodiscard]] l_expression_results evaluate_expression_sanity(ListTokenPtr::iterator it, ListTokenPtr::iterator to, std::unique_ptr<expression_block>& block, const expression_token_stack& = expression_token_stack());
 void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
+
+//assumes that "it" is the token after "fn"
+std::unique_ptr<function_block> parse_function_declaration(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, bool allow_returning=true);
 void evaluate_return_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, const std::unique_ptr<conditional_block>&);
 void evaluate_else_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
@@ -95,7 +97,11 @@ void evaluate_struct_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& 
 	expression_context& context,
 	operatorlist::iterator& it
 	);
-
+[[nodiscard]] ListTokenPtr::iterator  evaluate_member_access_sanity(
+	ListTokenPtr::iterator begin,
+	ListTokenPtr::iterator& end,
+	operatorlist::iterator& it
+);
 
 
 template <typename t>
@@ -108,7 +114,7 @@ inline t* move_block_to_current_context(std::unique_ptr<t>& block)
 	
 
 	//function scope root
-	if (scope->lower_scope->is_global_scope()) {
+	if (scope->lower_scope->is_global_scope() || scope->lower_scope->is_struct_scope()) {
 		data.current_function->add_instruction(block);
 		cblock = data.current_function->instructions.back().get();
 		cblock->owner = data.current_function;
