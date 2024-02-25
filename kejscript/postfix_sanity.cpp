@@ -74,7 +74,7 @@
 		struct_block = data.get_struct_data(context.identifier);
 	}
 	else {
-		call_block->target = data.get_function(context.identifier)->second.get();
+		call_block->target = data.get_function(context.identifier);
 	}
 
 	if (context.stack.stack.num_open)
@@ -190,7 +190,7 @@
 	block->member = it->get()->string;
 	pos->get()->block = std::move(block);
 
-	std::cout << it->get()->string << '\n';
+	//std::cout << it->get()->string << '\n';
 
 	return it;
 }

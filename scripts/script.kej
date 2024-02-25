@@ -1,47 +1,65 @@
-
-struct vec3
+fn swap(a, b)
 {
-	def x = 0;
-	def y = 0;
-	def z = 0;
-	vec3(x1, y1, z1)
+	def temp = a;
+	a = b;
+
+	return [a, temp];
+}
+
+
+struct function_table
+{
+	function_table(i, f)
 	{
-		x = x1;
-		y = y1;
-		z = z1;
-	}
-	vec3(x1){
-		x = x1;
-		y = x1;
-		z = x1;
+		identifier = i;
+		function = f;
 	}
 
-}
+	fn change_ptr(func, target, new_str){
+		function = func(function, target)[0];
+		identifier = new_str;
+	}
 
-fn vector_subtract(a, b)
-{
-	return vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+	def function = 0;
+	def identifier = "2";
 }
-fn mag_sq(vector)
+fn huh(other_func, a, b)
 {
-	return (vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z);
+	return other_func(a, b);
 }
-fn get_ent_diff(self, target)
-{
-	return vector_subtract(target, self);
-}
-
 fn main()
 {
-	def ent_positions = [ vec3(256, 1024, 512), vec3(-214, 2902, 203), vec3(420, 394, -1290) ];
-	def self = vec3(400, 500, 600);
-	def sum = 0;
 
-	for(def i = 0; i < 3; ++i){
-		sum = sum + mag_sq(get_ent_diff(self, ent_positions[i]));
+	def table = [ 
+		function_table("add", add), 
+		function_table("subtract", subtract), 
+		function_table("multiply", multiply), 
+		function_table("divide", divide) 
+		];
+
+	def results = [0,0,0,0];
+
+	for(def i = 0; i < 4; ++i){
+		results[i] = table[i].function(10, 5);
 	}
 
-	def average_diff = sum / 3;
 
+	table[0].change_ptr(swap, divide, table[1].function(99, 30));
 
+}
+fn add(a, b)
+{
+	return a + b;
+}
+fn subtract(a, b)
+{
+	return a - b;
+}
+fn multiply(a, b)
+{
+	return a * b;
+}
+fn divide(a, b)
+{
+	return a / b;
 }

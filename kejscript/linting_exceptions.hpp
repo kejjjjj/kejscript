@@ -9,7 +9,7 @@ struct linting_error
 		char buffer[512];
 		std::snprintf(buffer, sizeof(buffer), reason.c_str(), args...);
 		errReason = buffer;
-		errReason = "****** syntax error ******\n" + errReason + "\non line: [" + std::to_string(token->line) + ", " + std::to_string(token->column) + "]";
+		errReason = "\n****** syntax error ******\n" + errReason + "\non line: [" + std::to_string(token->line) + ", " + std::to_string(token->column) + "]";
 	};
 
 	template<typename ... Args>
@@ -17,7 +17,7 @@ struct linting_error
 		char buffer[512];
 		std::snprintf(buffer, sizeof(buffer), reason.c_str(), args...);
 		errReason = buffer;
-		errReason = "****** syntax error ******\n" + errReason + "\non line: [" + std::to_string(script->line) + ", " + std::to_string(script->column) + "]";
+		errReason = "\n****** syntax error ******\n" + errReason + "\non line: [" + std::to_string(script->line) + ", " + std::to_string(script->column) + "]";
 	};
 
 	template<typename ... Args>

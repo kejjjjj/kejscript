@@ -46,6 +46,10 @@ struct operand
 
 	std::shared_ptr<string_object> string;
 
+	auto& get_lvalue() const noexcept {
+		return std::get<std::shared_ptr<variable>>(value);
+	}
+
 	std::shared_ptr<object> is_object() const noexcept
 	{
 
@@ -73,6 +77,17 @@ struct operand
 		return nullptr;
 
 	}
+
+	function_block* is_function_pointer() const noexcept 
+	{
+		if (type != Type::LVALUE)
+			return nullptr;
+
+		auto& var = std::get<std::shared_ptr<variable>>(value);
+		return var->function_pointer;
+
+	}
+
 	bool is_string_literal()
 	{
 		return !is_object() && type == Type::RVALUE && get_value()->type() == datatype_e::string_t;
@@ -105,7 +120,11 @@ struct object
 		variables.push_back(std::make_shared<variable>(identifier));
 		auto& back = variables.back();
 
-		if (!obj) {
+		if (auto p = ptr->is_function_pointer()) {
+			back->function_pointer = p;
+			back->initialized = true;
+		}
+		else if (!obj) {
 			ptr->lvalue_to_rvalue();
 			back->value = std::move(std::get<datatype_ptr>(ptr->value));
 			back->initialized = true;

@@ -7,10 +7,6 @@
 operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr.token)
 {
 	using rvalue = std::unique_ptr<datatype>;
-
-
-	//static_assert(std::variant_size_v<decltype(value)> == 2, "No alternatives in the variant");
-
 	auto& oper = expr.v;
 
 	if (oper.type == validation_expression::Type::OTHER) {
@@ -23,6 +19,9 @@ operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr
 			ref = &stack->variables;
 
 		auto& r = (*ref)[ std::get<validation_expression::other>(oper.value).variable_index ];
+		
+		if(expr.function_pointer)
+			r->function_pointer = expr.function_pointer;
 		
 		value = r;
 		type = Type::LVALUE;

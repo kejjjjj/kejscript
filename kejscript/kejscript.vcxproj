@@ -169,6 +169,7 @@
   <ItemGroup>
     <ClInclude Include="datatype.hpp" />
     <ClInclude Include="function.hpp" />
+    <ClInclude Include="function_sanity.hpp" />
     <ClInclude Include="linting_evaluate.hpp" />
     <ClInclude Include="linting_scope.hpp" />
     <ClInclude Include="linting_exceptions.hpp" />

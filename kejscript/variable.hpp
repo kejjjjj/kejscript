@@ -19,6 +19,9 @@ struct variable
 	std::shared_ptr<object> obj;
 	std::shared_ptr<string_object> string;
 
+	function_block* function_pointer = 0;
+	std::shared_ptr<object> member = 0;
+
 	bool immutable = false;
 
 	void print(size_t spaces = 0);

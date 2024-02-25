@@ -4,7 +4,11 @@
 #include "linting_scope.hpp"
 
 void peek_unary_operator(ListTokenPtr::iterator & it, ListTokenPtr::iterator & end, expression_context & context);
-void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& context, std::unique_ptr<expression_block>& block);
+void peek_identifier(ListTokenPtr::iterator& it, 
+	ListTokenPtr::iterator& end, 
+	expression_context& context, 
+	std::unique_ptr<expression_block>& block,
+	singular* s);
 void peek_postfix_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& context, singular* s);
 std::unique_ptr<ast_node> generate_ast(singularlist& operands, operatorlist& operators);
 
@@ -49,7 +53,7 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, e
 	ListTokenPtr::iterator identifier_it = it;
 	context.identifier = it->get()->string;
 
-	peek_identifier(it, end, context, context.block);
+	peek_identifier(it, end, context, context.block, s.get());
 
 	context.size_excluding_postfix = context.operators.size();
 
@@ -277,7 +281,11 @@ void peek_unary_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end
 
 	return peek_unary_operator(++it, end, context);
 }
-void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& context, std::unique_ptr<expression_block>& block)
+void peek_identifier(ListTokenPtr::iterator& it, 
+	ListTokenPtr::iterator& end, 
+	expression_context& context, 
+	std::unique_ptr<expression_block>& block,
+	singular* s)
 {
 	if (it == end)
 		return;
@@ -372,6 +380,9 @@ void peek_identifier(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, ex
 				throw linting_error(std::next(it)->get(), "expected a '('");
 			}
 
+		}
+		else if (data.function_exists(token->string)) {
+			s->function_pointer = data.get_function(token->string);
 		}
 		else if (scope->variable_exists(token->string) == false 
 			&& !data.function_exists(token->string)) {
@@ -485,14 +496,12 @@ void generate_ast_recursive(std::unique_ptr<ast_node>& node, singularlist& expre
 		if(operators.empty())
 			return;
 
-		if (operators.size() == 1 && operators.front()->type != operator_type::POSTFIX) {
-			throw linting_error(operators.front()->token, "the expression ended unexpectedly");
-		}
+		throw linting_error(operators.front()->token, "internal bug");
+
 	}
 
 	op1 = operators.begin();
 	auto op = get_lowest_precedence(op1, operators.end());
-
 
 	if (operators.size() && op.position->get()->type == operator_type::UNARY) {
 		auto pos = op.position;
@@ -510,6 +519,7 @@ void generate_ast_recursive(std::unique_ptr<ast_node>& node, singularlist& expre
 
 		if(node->get_operator().get()->block->type() == code_block_e::EXPRESSION)
 			node->right = std::move(dynamic_cast<expression_block*>(node->get_operator().get()->block.get())->expression_ast);
+
 		operators.erase(pos);
 		return generate_ast_recursive(node->left, expressions, operators);
 	}
@@ -529,11 +539,14 @@ void generate_ast_recursive(std::unique_ptr<ast_node>& node, singularlist& expre
 	node->left = std::make_unique<ast_node>();
 	node->right = std::make_unique<ast_node>();
 
+
 	singularlist left_branch = singularlist(std::make_move_iterator(expressions.begin()), std::make_move_iterator(std::next(left_substr)));
 	operatorlist left_branch_op = operatorlist(std::make_move_iterator(operators.begin()), std::make_move_iterator(op.position));
 
 	singularlist right_branch = singularlist(std::make_move_iterator(right_substr), std::make_move_iterator(expressions.end()));
 	operatorlist right_branch_op = operatorlist(std::make_move_iterator(std::next(op.position)), std::make_move_iterator(operators.end()));
+
+	
 
 	operator_ptr ptr = (std::move(*op.position));
 	node->make_operator(ptr);
@@ -559,53 +572,36 @@ precedence_results get_lowest_precedence(operatorlist::iterator& itr1, const ope
 
 	OperatorPriority priority{};
 	
-	operatorlist::iterator begin = itr1;
 	operatorlist::iterator lowest_precedence_i = itr1;
 	precedence_results results{ itr1, 0 };
 	
-	//while (itr1 != end && itr1->get()->type != operator_type::STANDARD) {
-	//	std::advance(itr1, 1);
-	//}
-
 	if (itr1 == end)
 		return results;
 
 	OperatorPriority lowest_precedence = itr1->get()->priority;
-	size_t num_others = 0;
 	size_t real_distance = 0;
 	size_t lowest_distance = 0;
 	do {
 
-		if (itr1->get()->type != operator_type::STANDARD)
-			num_others++;
+
 
 		priority = itr1->get()->priority;
 		
-		if (itr1->get()->type == operator_type::STANDARD && priority <= lowest_precedence) {
+		if (itr1->get()->type == operator_type::STANDARD && priority < lowest_precedence) {
 			lowest_precedence = priority;
 			lowest_precedence_i = itr1;
 			lowest_distance = real_distance;
 		}
-		else if (itr1->get()->type != operator_type::STANDARD && priority < lowest_precedence) {
-			lowest_precedence = priority;
-			lowest_precedence_i = itr1;
-			lowest_distance = real_distance;
-		}
+
+		if (itr1->get()->type == operator_type::STANDARD)
+			real_distance++;
 
 		std::advance(itr1, 1);
 
-		//while (itr1 != end && itr1->get()->type != operator_type::STANDARD) {
-		//	std::advance(itr1, 1);
-		//}
-
-		if(itr1 != end)
-			real_distance++;
-
 	} while (itr1 != end);
 
-	std::advance(results.position, real_distance);
-	results.index = std::distance(begin, lowest_precedence_i) - num_others;
-	results.index = std::clamp(results.index, 0ll, results.index);
 	results.position = lowest_precedence_i;
+	//std::advance(results.position, lowest_distance);
+	results.index = lowest_distance;
 	return results;
 }

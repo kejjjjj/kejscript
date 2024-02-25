@@ -319,8 +319,11 @@ struct struct_def
 	std::string identifier;
 	std::vector<std::unique_ptr<variable_initializer>> initializers;
 	std::vector<std::unique_ptr<function_block>> constructors;
+	std::vector<std::unique_ptr<function_block>> methods;
 
 	std::unordered_map<std::string, quick_var_lookup> quick_lookup = {};
+	std::unordered_map<std::string, quick_var_lookup> quick_method_lookup = {};
+
 
 	NO_COPY_CONSTRUCTOR(struct_def);
 
@@ -402,6 +405,7 @@ struct singular {
 	token_t* token = nullptr;
 	function_block* owner = 0; // the function that owns this operand
 	struct_def* structure = 0;
+	function_block* function_pointer = 0;
 	//std::unique_ptr<function_call> callable;
 
 	struct postfix
@@ -440,6 +444,7 @@ struct ast_node
 	nodeptr left;
 	nodeptr right;
 	std::variant<std::unique_ptr<singular>, std::unique_ptr<_operator>> contents;
+	bool initialized = false;
 	bool is_leaf() const noexcept { return type == OPERAND; }
 	bool is_unary() const noexcept { return type == OPERATOR && std::get<operator_ptr>(contents)->type == operator_type::UNARY; }
 	bool is_postfix() const noexcept { return type == OPERATOR && std::get<operator_ptr>(contents)->type == operator_type::POSTFIX; }
@@ -456,10 +461,15 @@ struct ast_node
 	}
 
 	void make_operator(operator_ptr& op) {
+		if (op)
+			initialized = true;
 		contents = std::move(op);
 		type = OPERATOR;
 	}
 	void make_operand(std::unique_ptr<singular>& s) {
+		if (s)
+			initialized = true;
+
 		contents = std::move(s);
 		type = OPERAND;
 	}
@@ -502,23 +512,7 @@ struct ast_node
 	NO_COPY_CONSTRUCTOR(ast_node);
 
 private:
-	void print_internal(int level, std::vector<std::vector<std::string>>& levels) const
-	{
-		if (!this)
-			return;
-
-		std::string a = (type == Type::OPERAND
-			? std::get<std::unique_ptr<singular>>(contents)->token->string :
-			std::get<operator_ptr>(contents)->token->string);
-
-		if (levels.size() <= level)
-			levels.resize(size_t(level + 1));
-
-		levels[level].push_back(a);
-
-		left->print_internal(level + 1, levels);
-		right->print_internal(level + 1, levels);
-	}
+	void print_internal(int level, std::vector<std::vector<std::string>>& levels) const;
 };
 struct expression_context
 {
@@ -528,6 +522,7 @@ struct expression_context
 	std::unique_ptr<expression_block> block;
 	singularlist ex;
 	std::list<operator_ptr> operators;
+	//std::list<operator_ptr> other_operators;
 	std::string identifier;
 	size_t size_excluding_postfix = 0;
 

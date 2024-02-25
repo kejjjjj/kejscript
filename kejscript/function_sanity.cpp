@@ -2,17 +2,43 @@
 
 #include "linting_evaluate.hpp"
 #include "linting_scope.hpp"
+#include "function_sanity.hpp"
 
-void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, function_def& def);
+void unevaluated_function::evaluate(ListTokenPtr::iterator& end, bool returning_allowed) const {
 
-std::unique_ptr<function_block> parse_function_declaration(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, bool allow_returning)
-{
 	auto& data = linting_data::getInstance();
+	data.current_function = target;
+	data.active_scope = linting_create_scope_for_function(data.active_scope, &target->def, returning_allowed);
+	auto it = block_start;
 
+	while (data.active_scope->is_function_scope())
+	{
+		evaluate_identifier_sanity(it, end);
+		++it;
+	}
+
+
+}
+ListTokenPtr::iterator skip_function(ListTokenPtr::iterator it, ListTokenPtr::iterator& end)
+{
+	if (it == end)
+		throw linting_error(std::prev(it)->get(), "unexpected EOF");
+
+
+	if (!it->get()->is_operator(P_CURLYBRACKET_OPEN)) {
+		throw linting_error(it->get(), "expected '{' (internal bug)");
+	}
+
+	return seek_block_end(it, end);
+
+}
+
+void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, function_def& def);
+
+std::unique_ptr<function_block> parse_function_declaration(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end)
+{
 	function_def funcdef;
-
 	funcdef.identifier = it->get()->string;
-	std::vector<std::string> parameters;
 
 	//make sure that next token is (
 	if (VECTOR_PEEK(it, 1, end) == false || std::next(it)->get()->is_operator(P_PAR_OPEN) == false) {
@@ -21,10 +47,6 @@ std::unique_ptr<function_block> parse_function_declaration(ListTokenPtr::iterato
 
 	std::advance(it, 1); //skip the (
 
-	//create the scope for the function
-	data.active_scope = linting_create_scope_without_range(data.active_scope);
-	data.active_scope->is_inside_of_a_function = true;
-	data.active_scope->returning_allowed = allow_returning; //can only return void (constructors)
 	//start parsing the parameters
 
 	if (VECTOR_PEEK(it, 1, end) == false)
@@ -32,7 +54,7 @@ std::unique_ptr<function_block> parse_function_declaration(ListTokenPtr::iterato
 
 	//if the the next punctuation mark is a closing parenthesis then there is no point in parsing the parameters
 	if (std::next(it)->get()->is_operator(P_PAR_CLOSE) == false) {
-		parse_parameters(it, end, data.active_scope, funcdef);
+		parse_parameters(it, end, funcdef);
 	}
 	else
 		std::advance(it, 1); //skip to the ')' if there are no parameters
@@ -71,14 +93,20 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 
 	auto func = parse_function_declaration(it, end);
 
+	//create the scope for the function
+	
+	//data.active_scope = linting_create_scope_for_function(data.active_scope, &func->def, true);
+
 	if (func->def.identifier == "main")
 		func->entrypoint = true;
 
 	data.current_function = data.function_declare(func).get();
+	data.unevaluated_functions.insert({ data.current_function->def.identifier , { data.current_function, std::next(it) } });
 
+	it = skip_function(it, end);
 }
 
-void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, linting_scope* scope, function_def& def)
+void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, function_def& def)
 {
 	
 	if (it == end)
@@ -93,15 +121,18 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 	else if (std::next(it)->get()->is_identifier() == false) {
 		throw linting_error(std::next(it)->get(), "expected an identifier");
 	}
-	std::vector<std::string>& parameters = def.parameters;
+
 	std::advance(it, 1);
+	def.parameters.push_back(it->get()->string);
+	
+	for (auto& var : def.variables) {
 
-	parameters.push_back(it->get()->string);
-	def.variables.push_back(it->get()->string);
+		if(var == it->get()->string)
+			throw linting_error(it->get(), "the parameter '%s' has already been declared", it->get()->string.c_str());
 
-	if (!scope->declare_variable(parameters.back())) {
-		throw linting_error(it->get(), "this parameter has already been declared");
 	}
+
+	def.variables.push_back(it->get()->string);
 
 	if (VECTOR_PEEK(it, 1, end) == false)  //ridiculous amount of eof checks...
 		throw linting_error(it->get(), "expected to find a ')'");
@@ -109,7 +140,7 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, l
 	std::advance(it, 1);
 
 	if (it->get()->is_operator(punctuation_e::P_COMMA)) 
-		return parse_parameters(it, end, scope, def); //go to next parameter
+		return parse_parameters(it, end, def); //go to next parameter
 	
 	if (it->get()->is_operator(punctuation_e::P_PAR_CLOSE) == false)
 		throw linting_error(it->get(), "expected to find a ')'");

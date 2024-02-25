@@ -167,5 +167,8 @@
     <ClInclude Include="structs.hpp">
       <Filter>Source Files\runtime</Filter>
     </ClInclude>
+    <ClInclude Include="function_sanity.hpp">
+      <Filter>Source Files\linting\sanity_checks</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

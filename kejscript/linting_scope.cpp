@@ -3,6 +3,7 @@
 #include "linting_scope.hpp"
 #include "linting_exceptions.hpp"
 #include "linting_evaluate.hpp"
+
 linting_scope* linting_create_scope_without_range(linting_scope* block)
 {
 	LOG("creating a scope\n");
@@ -14,6 +15,18 @@ linting_scope* linting_create_scope_without_range(linting_scope* block)
 	scope->lower_scope = block;
 
 	return scope;
+}
+linting_scope* linting_create_scope_for_function(linting_scope* block, function_def* def, bool returning_allowed)
+{
+	block = linting_create_scope_without_range(block);
+	block->is_inside_of_a_function = true;
+	block->returning_allowed = returning_allowed;
+
+	for (auto& var : def->variables) {
+		block->declare_variable(var);
+	}
+
+	return block;
 }
 linting_scope* linting_delete_scope([[maybe_unused]] ListTokenPtr::iterator& it, linting_scope* block)
 {

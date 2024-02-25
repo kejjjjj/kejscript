@@ -359,3 +359,25 @@ void script_t::execute()
 
 
 }
+
+ListTokenPtr::iterator seek_block_end(ListTokenPtr::iterator it, const ListTokenPtr::iterator& end)
+{
+	size_t num_open = 0;
+	size_t num_close = 0;
+
+	while (it != end) {
+
+		if (it->get()->is_operator(P_CURLYBRACKET_OPEN))
+			num_open++;
+		else if (it->get()->is_operator(P_CURLYBRACKET_CLOSE))
+			num_close++;
+
+		if (num_open == num_close)
+			return it;
+
+		std::advance(it, 1);
+	}
+
+	return it;
+
+}

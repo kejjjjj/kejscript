@@ -68,9 +68,11 @@ private:
 	scope_type_e upper_scope_type = scope_type_e::UNKNOWN;
 	std::unordered_set<std::string> variable_table;
 	
-	NO_COPY_CONSTRUCTOR(linting_scope);
+	//NO_COPY_CONSTRUCTOR(linting_scope);
 
 };
 
 linting_scope* linting_create_scope_without_range(linting_scope* block);
+linting_scope* linting_create_scope_for_function(linting_scope* block, function_def* def, bool returning_allowed);
+
 linting_scope* linting_delete_scope(ListTokenPtr::iterator& it, linting_scope* block);

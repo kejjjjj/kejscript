@@ -13,6 +13,14 @@ void linting_data::validate(ListTokenPtr::iterator it, ListTokenPtr::iterator en
 		++codepos;
 	}
 
+	for (auto& structure : unevaluated_structs) {
+		structure.second.evaluate(end);
+	}
+
+	for (auto& func : unevaluated_functions) {
+		func.second.evaluate(end, true);
+	}
+
 	if (!active_scope->is_global_scope())
 		throw linting_error((--end)->get(), "expected to find a '}'");
 

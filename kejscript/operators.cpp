@@ -88,8 +88,20 @@ std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand,
 	if(v->immutable)
 		throw runtime_error(left_operand._operand, "the operand is immutable");
 
+
+	if (auto func_ptr = right_operand.is_function_pointer()) {
+
+		v->value = 0;
+		v->function_pointer = func_ptr;
+		v->string = 0;
+		v->obj = 0;
+		v->initialized = true;
+		return create_lvalue(v);
+
+	}
 	if (auto obj = right_operand.is_object()) {
 
+		v->function_pointer = 0;
 		v->value.reset();
 		v->obj = obj;
 		v->initialized = true;
@@ -98,6 +110,7 @@ std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand,
 	}
 	if (auto string = right_operand.is_string()) {
 
+		v->function_pointer = 0;
 		v->string = std::make_shared<string_object>();
 
 		auto str = string->get_string();
@@ -109,10 +122,12 @@ std::unique_ptr<operand> evaluation_functions::assignment(operand& left_operand,
 
 		return create_lvalue(v);
 	}
+
 	auto right_value = right_operand.lvalue_to_rvalue();
 
 	v->string = 0;
 	v->obj = 0;
+	v->function_pointer = 0;
 
 	switch (right_value->type()) {
 	case datatype_e::bool_t:
@@ -142,16 +157,27 @@ void evaluation_functions::assign_to_lvalue(std::shared_ptr<variable>& var, cons
 	//if (var->immutable)
 	//	throw runtime_error(right->_operand, "the operand is immutable");
 
+	if (auto func_ptr = right->is_function_pointer()) {
+		var->value = 0;
+		var->function_pointer = func_ptr;
+		var->string = 0;
+		var->obj = 0;
+		var->initialized = true;
+		return;
+	}
 	if (auto obj = right->is_object()) {
 
+		var->function_pointer = 0;
 		var->value.reset();
 		var->obj = obj;
 		var->initialized = true;
+		//var->function_pointer = right->is_function_pointer();
 
 		return;
 	}
 	if (auto string = right->is_string()) {
 
+		var->function_pointer = 0;
 		var->string = std::make_shared<string_object>();
 		auto str = string->get_string();
 		for (auto& c : str)
@@ -160,13 +186,13 @@ void evaluation_functions::assign_to_lvalue(std::shared_ptr<variable>& var, cons
 		var->initialized = true;
 		return;
 	}
-
 	if (right->has_value() == false) {
 		throw runtime_error(right->_operand, "the operand does not have a value");
 	}
 
 	var->string = 0;
 	var->obj = 0;
+	var->function_pointer = 0;
 
 	auto right_operand = right->lvalue_to_rvalue();
 	auto& left_operand = var->value;

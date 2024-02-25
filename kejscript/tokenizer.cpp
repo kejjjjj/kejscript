@@ -40,3 +40,24 @@ size_t function_block::get_index_for_variable(const std::string_view& target)
 	assert("get_index_for_variable(): didn't find variable.. how?");
 	return 0;
 }
+
+void ast_node::print_internal(int level, std::vector<std::vector<std::string>>& levels) const
+{
+	if (!this)
+		return;
+
+	if (!initialized)
+		throw linting_error("uninitialized node");
+
+	std::string a = (type == Type::OPERAND
+		? std::get<std::unique_ptr<singular>>(contents)->token->string :
+		std::get<operator_ptr>(contents)->token->string);
+
+	if (levels.size() <= level)
+		levels.resize(size_t(level + 1));
+
+	levels[level].push_back(a);
+
+	left->print_internal(level + 1, levels);
+	right->print_internal(level + 1, levels);
+}

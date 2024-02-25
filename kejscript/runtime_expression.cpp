@@ -22,6 +22,28 @@ static void evaluate_unary(operand_ptr& target, const nodeptr& node)
 	return evaluate_unary(target, node->left);
 
 }
+
+static std::list<std::unique_ptr<operand>> parse_arguments(function_block* owner, function_stack* stack, operand_ptr& target, std::unique_ptr<expression_block>& arguments)
+{
+	expression_block* arg = arguments.get();
+	std::list<std::unique_ptr<operand>> args;
+	size_t argc = 1;
+	while (arg) {
+		auto expr = evaluate_expression(owner, stack, arg->expression_ast);
+
+		if (!expr) {
+			std::string s_argc = std::to_string(argc);
+			throw runtime_error(target->_operand, "attempted to pass a null value to function (argument %s)", s_argc.c_str());
+		}
+		args.push_back(std::move(expr));
+		arg = arg->next.get();
+		++argc;
+	}
+
+	return (args);
+
+}
+
 static void evaluate_postfix(function_block* owner, function_stack* stack, operand_ptr& target, const nodeptr& node)
 {
 	if (node->is_postfix() == false)
@@ -33,22 +55,21 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 
 		auto function = dynamic_cast<function_call*>(op->block.get());
 
-		expression_block* arg = function->arguments.get();
-		std::list<std::unique_ptr<operand>> args;
-		size_t argc = 1;
-		while (arg) {
-			auto expr = evaluate_expression(owner, stack, arg->expression_ast);
+		auto target_func = target->is_function_pointer();
 
-			if (!expr) {
-				std::string s_argc = std::to_string(argc);
-				throw runtime_error(target->_operand, "attempted to pass a null value to function (argument %s)", s_argc.c_str());
-			}
-			args.push_back(std::move(expr));
-			arg = arg->next.get();
-			++argc;
+		if (!target_func) {
+			throw runtime_error(node->get_token(), "the operand is not a function");
 		}
-		target = call_function(owner, function->target, args, stack);
 
+		auto args = parse_arguments(owner, stack, target, function->arguments);
+		auto& v = target->get_lvalue();
+
+		if (v->member) {
+			target = call_method(target_func, std::move(args), v->member);
+		}
+		else {
+			target = call_function(owner, target_func, std::move(args), stack);
+		}
 		if (!target) //function didn't return a value
 			return;
 
@@ -56,23 +77,7 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 	else if (op->block->type() == code_block_e::STRUCT_CALL) {
 
 		auto function = dynamic_cast<struct_call*>(op->block.get());
-
-		expression_block* arg = function->arguments.get();
-		std::list<std::unique_ptr<operand>> args;
-		size_t argc = 1;
-		while (arg) {
-			auto expr = evaluate_expression(owner, stack, arg->expression_ast);
-
-			if (!expr) {
-				std::string s_argc = std::to_string(argc);
-				throw runtime_error(target->_operand, "attempted to pass a null value to function (argument %s)", s_argc.c_str());
-			}
-			args.push_back(std::move(expr));
-			arg = arg->next.get();
-			++argc;
-		}
-
-		target = call_constructor(function, args, stack);
+		target = call_constructor(function, std::move(parse_arguments(owner, stack, target, function->arguments)), stack);
 
 		if (!target) //function didn't return a value (should never happen?)
 			return;
@@ -96,11 +101,26 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 		auto var = obj->structure->quick_lookup[member->member].var_index;
 
 		if (var == -1) {
-			std::string wtf = member->member;
-			throw runtime_error(node->get_token(), "'%s' is not a member of '%s'", wtf.c_str(), obj->structure->identifier.c_str());
+
+			var = obj->structure->quick_method_lookup[member->member].var_index; //test if it's a method
+
+			if (var == -1) {
+				std::string wtf = member->member;
+				throw runtime_error(node->get_token(), "'%s' is not a member of '%s'", wtf.c_str(), obj->structure->identifier.c_str());
+			}
+
+			auto v = std::make_shared<variable>();
+
+			v->function_pointer = obj->structure->methods[var].get();
+			v->member = obj;
+
+			target = create_lvalue(v);
+		}
+		else {
+			obj->variables[var]->member = obj;
+			target = create_lvalue(obj->variables[var]);
 		}
 
-		target = create_lvalue(obj->variables[var]);
 
 	}
 
@@ -111,7 +131,7 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 	//return evaluate_postfix(owner, stack, target, node->left);
 
 }
-std::unique_ptr<operand> evaluate_initializer_list(function_block* owner, function_stack* stack, const initializer_list* list)
+static std::unique_ptr<operand> evaluate_initializer_list(function_block* owner, function_stack* stack, const initializer_list* list)
 {
 	auto rvalue_array = std::make_shared<variable>();
 	rvalue_array->initialized = true;

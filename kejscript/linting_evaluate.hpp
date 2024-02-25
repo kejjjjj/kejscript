@@ -6,15 +6,8 @@
 #include "linting_exceptions.hpp"
 #include "linting_scope.hpp"
 
-struct undefined_variable
-{
-	singular* target = 0;
-	std::unique_ptr<function_call> func_call = 0;
-	std::string identifier;
-	ListTokenPtr::iterator location;
-	size_t num_args = 0;
-	bool function = false;
-};
+#include "function_sanity.hpp"
+
 struct linting_data
 {
 	static linting_data& getInstance() { static linting_data d; return d; }
@@ -27,14 +20,14 @@ struct linting_data
 
 	void validate(ListTokenPtr::iterator it, ListTokenPtr::iterator to);
 
-	bool all_functions_exists(const std::string& name) {
-		const bool found = existing_funcs.find(name) != existing_funcs.end();
-		return found;
+	function_block* get_function(const std::string& name) {
+
+		if (!function_exists(name))
+			return nullptr;
+
+		return unevaluated_functions.find(name)->second.target;
 	}
-	auto get_function(const std::string& name) {
-		return function_table.find(name);
-	}
-	bool function_exists(const std::string& s) const { return function_table.find(s) != function_table.end(); }
+	bool function_exists(const std::string& s) const { return unevaluated_functions.find(s) != unevaluated_functions.end(); }
 	auto& function_declare(std::unique_ptr<function_block>& func) {
 		
 		if (function_exists(func->def.identifier))
@@ -44,8 +37,8 @@ struct linting_data
 		return function_table.insert(function_table.end(), { func->def.identifier, std::move(func) })->second;
 		
 	}
-	bool struct_exists(const std::string& s) const { return structs.find(s) != structs.end(); }
-	auto get_struct_data(const std::string& s) const { return structs.find(s)->second.get(); }
+	bool struct_exists(const std::string& s) const { return unevaluated_structs.find(s) != unevaluated_structs.end(); }
+	auto get_struct_data(const std::string& s) const { return unevaluated_structs.find(s)->second.def; }
 	auto& struct_declare(std::unique_ptr<struct_def>& _struct) {
 
 		if (struct_exists(_struct->identifier))
@@ -56,6 +49,9 @@ struct linting_data
 		return structs.insert(structs.end(), { _struct->identifier, std::move(_struct) })->second;
 	}
 	std::unordered_map<std::string, std::unique_ptr<function_block>> function_table;
+	std::unordered_map<std::string, unevaluated_function> unevaluated_functions;
+	std::unordered_map<std::string, unevaluated_struct> unevaluated_structs;
+
 };
 
 struct linting_expression
@@ -78,7 +74,7 @@ void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::itera
 void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 
 //assumes that "it" is the token after "fn"
-std::unique_ptr<function_block> parse_function_declaration(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, bool allow_returning=true);
+std::unique_ptr<function_block> parse_function_declaration(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_return_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);
 void evaluate_if_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to, const std::unique_ptr<conditional_block>&);
 void evaluate_else_sanity(ListTokenPtr::iterator& it, ListTokenPtr::iterator& to);

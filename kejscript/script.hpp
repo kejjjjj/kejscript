@@ -38,3 +38,6 @@ private:
 	script_t(const script_t&) = delete;
 	script_t& operator=(const script_t&) = delete;
 };
+
+//assumes "it" is the '{' keyword
+ListTokenPtr::iterator seek_block_end(ListTokenPtr::iterator it, const ListTokenPtr::iterator& end);

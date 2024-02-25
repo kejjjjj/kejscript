@@ -48,7 +48,7 @@ void variable::print2() const
 	print_internal();
 	std::cout << " : " << identifier << '\n';
 }
-void variable::print_internal(bool is_member) const
+void variable::print_internal(bool b_is_member) const
 {
 	if (obj) {
 
@@ -56,15 +56,21 @@ void variable::print_internal(bool is_member) const
 		
 		for (auto& arr : obj->variables) {
 
-			bool member = (arr == obj->variables.back());
-			arr->print_internal(member ? false : true);
+			bool m = (arr == obj->variables.back());
+			arr->print_internal(m ? false : true);
 		}
 
-		std::cout << (is_member ? " ], " : " ]");
+		std::cout << (b_is_member ? " ], " : " ]");
 		return;
 	}
 	 
-	const std::string postfix = is_member ? ", " : "";
+
+	const std::string postfix = b_is_member ? ", " : "";
+
+	if (function_pointer) {
+		std::cout << "fptr (" << function_pointer->def.identifier << ')' << postfix;
+		return;
+	}
 
 	if (string)
 	{
