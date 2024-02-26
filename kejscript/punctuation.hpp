@@ -38,6 +38,8 @@ enum punctuation_e : char
 	P_MULTIPLICATION,
 	P_DIVISION,
 
+	P_LOGICAL_AND,
+
 	P_INCREMENT,
 
 	P_PAR_OPEN,
@@ -70,7 +72,10 @@ const static punctuation_t punctuations[] =
 	{"==", P_EQUALITY, RELATIONAL },
 	{"!=", P_UNEQUALITY, RELATIONAL },
 
+	{"&&", P_LOGICAL_AND, LOGICAL_AND},
+
 	{"++", P_INCREMENT, UNARY},
+	
 
 	{"+", P_ADD, ADDITIVE},
 	{"-", P_SUB, ADDITIVE},
@@ -83,7 +88,7 @@ const static punctuation_t punctuations[] =
 	{"/", P_DIVISION, MULTIPLICATIVE},
 
 	{"=", P_ASSIGN, ASSIGNMENT},
-
+	
 	{"(", P_PAR_OPEN, POSTFIX},
 	{")", P_PAR_CLOSE, FAILURE},
 

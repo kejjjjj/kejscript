@@ -6,7 +6,7 @@
 std::unique_ptr<operand> call_function(
 	function_block* caller, 
 	function_block* callee, 
-	const std::list<std::unique_ptr<operand>>& args, 
+	const std::list<operand*>& args, 
 	[[maybe_unused]]function_stack* stack, 
 	struct function_stack** main_stack)
 {
@@ -15,27 +15,38 @@ std::unique_ptr<operand> call_function(
 
 	auto unique_stack = std::make_unique<function_stack>(); //no need to manually reset this
 	auto stack_ptr = unique_stack.get();
-	auto arg = args.begin();
-	for (const auto& param : callee->def.parameters) {
-		stack_ptr->variables.push_back(std::make_shared<variable>(param));
-		evaluation_functions::assign_to_lvalue(stack_ptr->variables.back(), *arg);
-		++arg;
+
+	//create the stack
+	size_t num_vars = callee->def.num_operands();
+
+	for (size_t i = 0; i < num_vars; ++i) {
+		stack_ptr->variables.push_back(std::make_shared<operand>());
+		stack_ptr->variables[i]->value = std::make_shared<variable>();
 	}
 
-	for (auto& v : callee->def.variables) {
-		stack_ptr->variables.push_back(std::make_shared<variable>(v));
+	auto arg = args.begin();
+	size_t i = 0;
+	for ([[maybe_unused]] const auto& _ : callee->def.parameters) {
+		evaluation_functions::assign_to_lvalue(stack_ptr->variables[i]->get_lvalue(), *arg);
+		++arg;
+		++i;
 	}
+
+	//for (auto& v : callee->def.variables) {
+	//	stack_ptr->variables.push_back(std::make_shared<variable>(v));
+	//}
 
 	for (auto& instruction : callee->instructions) {
 
 		if (instruction->execute(stack_ptr)) {
-			auto returned_value = std::unique_ptr<operand>(callee->return_value); //claim ownership!
 
-			if(!returned_value->is_object())
-				returned_value->lvalue_to_rvalue();
+			//auto& returned_value = stack_ptr->return_value; //claim ownership!
 
-			callee->return_value = 0;
-			return returned_value;
+			//if (returned_value && !returned_value->valueless_type())
+			//	returned_value->lvalue_to_rvalue();
+
+			return nullptr;
+			//return returned_value;
 
 		}
 		

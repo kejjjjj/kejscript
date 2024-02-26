@@ -1,65 +1,11 @@
-fn swap(a, b)
-{
-	def temp = a;
-	a = b;
 
-	return [a, temp];
-}
-
-
-struct function_table
-{
-	function_table(i, f)
-	{
-		identifier = i;
-		function = f;
-	}
-
-	fn change_ptr(func, target, new_str){
-		function = func(function, target)[0];
-		identifier = new_str;
-	}
-
-	def function = 0;
-	def identifier = "2";
-}
-fn huh(other_func, a, b)
-{
-	return other_func(a, b);
-}
 fn main()
 {
-
-	def table = [ 
-		function_table("add", add), 
-		function_table("subtract", subtract), 
-		function_table("multiply", multiply), 
-		function_table("divide", divide) 
-		];
-
-	def results = [0,0,0,0];
-
-	for(def i = 0; i < 4; ++i){
-		results[i] = table[i].function(10, 5);
+	def i = 0;
+	i = 3;
+	while(i < 1000){
+		i = i + 1;
 	}
 
 
-	table[0].change_ptr(swap, divide, table[1].function(99, 30));
-
-}
-fn add(a, b)
-{
-	return a + b;
-}
-fn subtract(a, b)
-{
-	return a - b;
-}
-fn multiply(a, b)
-{
-	return a * b;
-}
-fn divide(a, b)
-{
-	return a / b;
 }

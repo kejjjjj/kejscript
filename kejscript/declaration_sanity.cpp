@@ -29,6 +29,7 @@ void evaluate_declaration_sanity(ListTokenPtr::iterator& it, ListTokenPtr::itera
 	LOG("declaring: '" << it->get()->string << "'\n");
 
 	auto& funcdef = data.current_function->def;
+	funcdef.operands.insert({ it->get()->string, funcdef.operands.size() });
 	funcdef.variables.push_back(it->get()->string);
 
 	if (VECTOR_PEEK(it, 1, end) == false) {

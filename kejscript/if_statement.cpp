@@ -17,9 +17,7 @@ bool conditional_block::execute(function_stack* stack)
 	if (value->bool_convertible() == false)
 		throw runtime_error(value->_operand, "the expression must be convertible to a boolean type");
 
-	//const auto result = datatype::create_type<bool_dt, bool>(*value->get_value());
-	//const bool expression_condition = result.get();
-	bool expression_condition = *reinterpret_cast<bool*>(value->get_value()->value.data());
+	bool expression_condition = *reinterpret_cast<bool*>(value->get_value()->data->data());
 
 	if (expression_condition == true) {
 		return eval_block(stack);

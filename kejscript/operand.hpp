@@ -5,10 +5,14 @@
 
 struct operand;
 
+using shared_datatype = std::shared_ptr<datatype>;
+
 using datatype_ptr = std::unique_ptr<datatype>;
 using operand_ptr = std::unique_ptr<operand>;
 
 struct object;
+
+
 
 struct operand
 {
@@ -18,45 +22,72 @@ struct operand
 		RVALUE
 	}type = Type::LVALUE;
 
-	operand() = default;
+	operand() /*: value(std::make_shared<variable>()), type(Type::LVALUE)*/
+	{
+		
+	};
 	operand(singular& expr, struct function_stack* stack);
-	operand(std::shared_ptr<variable> v) : value(v), type(Type::LVALUE) {}
-	operand(datatype_ptr&& expr) : value(std::move(expr)), type(Type::RVALUE) {}
+	operand(std::shared_ptr<variable>& v) : value(v), type(Type::LVALUE) {}
 
-	std::variant<datatype_ptr, std::shared_ptr<variable>> value;
+	//template<typename T>
+	//operand(const T& expr)
+	//{
+	//	make_rvalue<T>(expr);
+	//}
+
+	type_value rvalue;
+
+	std::shared_ptr<variable> value;
 	void cast_weaker_operand(datatype_e this_type, datatype_e other_type, operand& other);
-	void cast_weaker_operand(datatype* other_type);
+	void cast_weaker_operand(type_value* other_type);
 
 	void implicit_cast(operand& other);
-	void implicit_cast(datatype* other);
+	void implicit_cast(type_value* other);
 
-	void implicit_cast(operand& other, datatype* l, datatype* r);
+	void implicit_cast(operand& other, type_value* l, type_value* r);
 	bool has_value()  const noexcept;
 	bool is_integral() const noexcept;
 	bool is_numeric() const noexcept;
 	bool bool_convertible() const noexcept;
+	bool valueless_type() const noexcept;
+
+	void make_lvalue(std::shared_ptr<variable>& v) { value = v; type = Type::LVALUE; }
+
+	template<typename T>
+	void make_rvalue(const T& v) 
+	{ 
+		rvalue.value = (v); 
+		rvalue.rvalue_t = v.type(); 
+		rvalue.data = &rvalue.get<T>().value;
+		type = Type::RVALUE; 
+	}
+
+
 
 	bool is_compatible_with(const operand& other) const;
 
-	datatype* lvalue_to_rvalue();
-	datatype* get_value();
-	datatype* get_value() const;
+	type_value& lvalue_to_rvalue();
+	
+	type_value* get_value();
+	type_value* get_value() const;
 
 	token_t* _operand = nullptr;
 
 	std::shared_ptr<string_object> string;
 
-	auto& get_lvalue() const noexcept {
-		return std::get<std::shared_ptr<variable>>(value);
+	auto& get_lvalue() const {
+		return value;
 	}
-
+	auto& get_lvalue() {
+		return value;
+	}
 	std::shared_ptr<object> is_object() const noexcept
 	{
 
 		if (type == Type::LVALUE) {
-			auto& var = std::get<std::shared_ptr<variable>>(value);
+			auto& var = value;
 
-			if (var->obj)
+			if (var && var->obj)
 				return var->obj;
 		}
 		return nullptr;
@@ -68,9 +99,9 @@ struct operand
 			return string;
 
 		if (type == Type::LVALUE) {
-			auto& var = std::get<std::shared_ptr<variable>>(value);
+			auto& var = value;
 
-			if (var->string)
+			if (var && var->string)
 				return var->string;
 		}
 
@@ -83,20 +114,29 @@ struct operand
 		if (type != Type::LVALUE)
 			return nullptr;
 
-		auto& var = std::get<std::shared_ptr<variable>>(value);
-		return var->function_pointer;
+		auto& var = value;
 
+		if (var && var->function_pointer)
+			return var->function_pointer;
+
+		return nullptr;
 	}
 
 	bool is_string_literal()
 	{
-		return !is_object() && type == Type::RVALUE && get_value()->type() == datatype_e::string_t;
+		return !is_object() && !is_function_pointer() && type == Type::RVALUE && get_value()->rvalue_t == datatype_e::string_t;
 	}
 
 	std::string get_type() const noexcept
 	{
+		if (is_string())
+			return "string";
+
 		if (is_object())
 			return "object";
+
+		if (is_function_pointer())
+			return "fptr";
 
 		return get_value()->type_str();
 	}
@@ -114,7 +154,7 @@ struct object
 	object() = default;
 	//~object() { LOG("~object\n"); }
 
-	void insert(operand_ptr& ptr, const std::string& identifier="") {
+	void insert(operand* ptr, const std::string& identifier="") {
 		auto obj = ptr->is_object();
 
 		variables.push_back(std::make_shared<variable>(identifier));
@@ -126,10 +166,8 @@ struct object
 		}
 		else if (!obj) {
 			ptr->lvalue_to_rvalue();
-			back->value = std::move(std::get<datatype_ptr>(ptr->value));
+			back->get_value() = *ptr->get_value();
 			back->initialized = true;
-			back->identifier = "list_element";
-
 		}
 		else {
 			back->obj = obj;
@@ -161,7 +199,7 @@ struct string_object
 		auto& back = variables.back();
 
 		back->immutable = true;
-		back->value = std::make_unique<char_dt>(c);
+		back->set_value(char_dt(c));
 		back->identifier = "character";
 		back->initialized = true;
 	}
@@ -171,7 +209,7 @@ struct string_object
 		std::string str;
 
 		for (auto& v : variables)
-			str.push_back(v->value->getvalue<char_dt>().get());
+			str.push_back(v->get_value().get<char_dt>().get());
 
 		return str;
 	}

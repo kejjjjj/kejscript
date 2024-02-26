@@ -13,40 +13,33 @@ void peek_postfix_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& e
 std::unique_ptr<ast_node> generate_ast(singularlist& operands, operatorlist& operators);
 
 
-validation_expression::literal create_literal(ListTokenPtr::iterator& token) {
+static std::unique_ptr<type_value> create_literal(ListTokenPtr::iterator& token) {
 	validation_expression::literal literal;
-	literal.value = *(*token)->value.get();
+	auto& value = *(*token)->value.get();
 
 	switch (token->get()->tt) {
 	case tokentype_t::NUMBER_LITERAL:
-		literal.type = validation_expression::literal::NUMBER_LITERAL;
-		break;
+		return std::make_unique<type_value>(integer_dt(*reinterpret_cast<std::int64_t*>(value.data())), datatype_e::int_t, nullptr);
 	case tokentype_t::FLOAT_LITERAL:
-		literal.type = validation_expression::literal::FLOAT_LITERAL;
-		break;
+		return std::make_unique<type_value>(double_dt(*reinterpret_cast<double_dt*>(value.data())), datatype_e::double_t, nullptr);
 	case tokentype_t::STRING_LITERAL:
-		literal.type = validation_expression::literal::STRING_LITERAL;
-		break;
+		return std::make_unique<type_value>(string_dt(value), datatype_e::string_t, nullptr);
 	case tokentype_t::CHAR_LITERAL:
-		literal.type = validation_expression::literal::CHAR_LITERAL;
-		break;
+		return std::make_unique<type_value>(char_dt(value[0]), datatype_e::char_t, nullptr);
 	case tokentype_t::_TRUE:
-		literal.type = validation_expression::literal::_TRUE;
-		break;
+		return std::make_unique<type_value>(bool_dt(true), datatype_e::bool_t, nullptr);
 	case tokentype_t::_FALSE:
-		literal.type = validation_expression::literal::_FALSE;
-		break;
+		return std::make_unique<type_value>(bool_dt(false), datatype_e::bool_t, nullptr);
 	}
 
-	return literal;
+	return nullptr;
 }
 
-void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& context)
+static std::unique_ptr<singular> tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, expression_context& context)
 {
 	auto s = std::make_unique<singular>();
-
-	std::list<_operator> prefix, postfix;
 	const auto& current_function = linting_data::getInstance().current_function;
+	auto& data = linting_data::getInstance();
 
 	peek_unary_operator(it, end, context);
 
@@ -62,17 +55,15 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, e
 	//an expression with parentheses is the next one
 	if (context.block->next) {
 		s->parentheses = std::move(context.block->next->expression_ast);
-		context.ex.push_back(std::move(s));
 		context.block->next.reset();
-		return;
+		return (s);
 	}
 	else if (context.block->list)
 	{
 		s->token = identifier_it->get();
 		s->initializers = std::move(context.block->list);
-		context.ex.push_back(std::move(s));
 		context.block->list.reset();
-		return;
+		return (s);
 	}
 
 
@@ -80,22 +71,43 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, e
 	if (identifier_it->get()->is_identifier() == false) {
 
 		if (!identifier_it->get()->value)
-			return;
+			return nullptr;
 
-		s->make_literal(create_literal(identifier_it));
+		auto itr = data.literals.find(identifier_it->get()->string);
+
+		size_t literal_idx = 0;
+
+		if (itr == data.literals.end()) {
+
+			literal_idx = data.literals.size();
+
+
+			data.literals.insert( { 
+					identifier_it->get()->string, 
+					std::make_unique<script_literals>(create_literal(identifier_it), data.literals.size()) });
+
+			data.sorted_literals.push_back((--data.literals.end())->second.get());
+
+		}
+		else {
+			literal_idx = itr->second->index;
+		}
+
+		s->make_literal({ literal_idx });
 	}
 	else {
+
 		validation_expression::other other{  
 			identifier_it->get()->string, 
-			current_function->get_index_for_variable(identifier_it->get()->string)};
+			current_function->get_index_for_variable(identifier_it->get()->string),
+			current_function->get_index_for_operand(identifier_it->get()->string)};
 
+	
 		s->make_other(other);
 	}
 
-	s->owner = linting_data::getInstance().current_function;
+	s->owner = data.current_function;
 	s->token = identifier_it->get();
-
-	auto& data = linting_data::getInstance();
 
 	if (data.active_struct) {
 
@@ -115,7 +127,7 @@ void tokenize_operand(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, e
 			s->structure = data.active_struct;
 	}
 
-	context.ex.push_back(std::move(s));
+	return (s);
 }
 
 #include "operators.hpp"
@@ -175,7 +187,11 @@ void tokenize_operator(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, 
 		//if (it->get()->is_operator(punctuation_e::P_COMMA))
 		//	goto comma;
 
-		tokenize_operand(it, end, ctx);
+		auto r = tokenize_operand(it, end, ctx);
+
+		if (r) {
+			ctx.ex.push_back(std::move(r));
+		}
 
 		//the comma should only exit if we are not using the stack
 		if (it->get()->is_operator(punctuation_e::P_COMMA)) {
@@ -382,6 +398,14 @@ void peek_identifier(ListTokenPtr::iterator& it,
 
 		}
 		else if (data.function_exists(token->string)) {
+
+			if (scope->declare_variable(token->string)) {
+				//throw linting_error(it->get(), "the variable '%s' is already defined");
+
+				data.current_function->def.variables.push_back(token->string);
+				data.current_function->def.operands.insert({ token->string, data.current_function->def.operands.size() });
+			}
+
 			s->function_pointer = data.get_function(token->string);
 		}
 		else if (scope->variable_exists(token->string) == false 

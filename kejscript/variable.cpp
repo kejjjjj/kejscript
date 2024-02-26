@@ -32,9 +32,9 @@ void variable::print(size_t spaces)
 
 	if (!obj) {
 
-		if (value) {
+		if (value.data) {
 			auto& v = value;
-			std::cout << std::format("{}| <{}> ({}) @ 0x{:x}\n", prefix, v->type_str(), v->value_str(), ptrdiff_t(this));
+			std::cout << std::format("{}| <{}> ({}) @ 0x{:x}\n", prefix, v.type_str(), v.value_str(), ptrdiff_t(this));
 		}else
 			std::cout << std::format("{}| empty\n", prefix);
 
@@ -79,12 +79,17 @@ void variable::print_internal(bool b_is_member) const
 	}
 
 
-	if (value){
-		std::cout << value->value_str() << postfix;
+	if (value.data){
+		std::cout << value.value_str() << postfix;
 	}
 	else
 		std::cout << "NULL" << postfix;
 
 
 
+}
+
+bool variable::valueless_type() const noexcept
+{
+	return obj != nullptr || function_pointer != nullptr;
 }

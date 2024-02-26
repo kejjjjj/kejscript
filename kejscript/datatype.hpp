@@ -20,7 +20,7 @@ struct expression_t
 };
 
 
-enum class datatype_e
+enum class datatype_e : std::int8_t
 {
 	bool_t,
 	int_t,
@@ -46,8 +46,6 @@ struct datatype
 	virtual bool is_numeric() const noexcept(true) = 0;
 	virtual bool bool_convertible() const noexcept(true) = 0;
 
-	void implicit_cast(datatype* other);
-
 	template<typename T>
 	static auto cast(datatype*d) {
 		return std::make_unique<T>(dynamic_cast<T*>(d)->get());
@@ -63,8 +61,8 @@ struct datatype
 	static constexpr Base create_type(const datatype& target);
 	template<typename Base, typename CastType>
 	static constexpr Base create_type_copy(const Base& target);
-	template<typename Base, typename CastType>
-	static constexpr std::unique_ptr<Base> create_type_ptr(datatype& target);
+	//template<typename Base, typename CastType>
+	//static constexpr std::unique_ptr<Base> create_type_ptr(datatype& target);
 
 	std::vector<char> value;
 protected:
@@ -72,9 +70,7 @@ protected:
 
 };
 
-using datatype_ptr = std::unique_ptr<datatype>;
 
-using rvalue = std::unique_ptr<datatype>;
 struct bool_dt : public datatype
 {
 	~bool_dt() = default;
@@ -136,21 +132,21 @@ struct integer_dt : public datatype
 {
 	~integer_dt() = default;
 
-	integer_dt(int32_t v) {
+	integer_dt(std::int64_t v) {
 		value.resize(size_of());
-		*reinterpret_cast<int32_t*>(value.data()) = v;
+		*reinterpret_cast<std::int64_t*>(value.data()) = v;
 	};
 
-	size_t size_of() const noexcept(true) override { return sizeof(int32_t); };
+	size_t size_of() const noexcept(true) override { return sizeof(std::int64_t); };
 	datatype_e type() const noexcept(true) override { return datatype_e::int_t; }
-	const int32_t get() const noexcept { return *reinterpret_cast<const int32_t*>(value.data()); }
+	const std::int64_t get() const noexcept { return *reinterpret_cast<const std::int64_t*>(value.data()); }
 	std::string type_str() const noexcept(true) override { return "int"; }
 	std::string value_str() const noexcept(true) override { return std::to_string(get()); }
 	bool is_integral() const noexcept(true) override { return true; }
 	bool is_numeric() const noexcept(true) override { return true; }
 	bool bool_convertible() const noexcept(true) override { return true; }
 
-	void set(int32_t v) { *reinterpret_cast<int32_t*>(value.data()) = v; }
+	void set(std::int64_t v) { *reinterpret_cast<std::int64_t*>(value.data()) = v; }
 
 	auto operator-() const {
 		auto result = -this->get();
@@ -341,6 +337,88 @@ struct char_dt : public datatype
 	}
 
 };
+
+using datatypes = std::variant<bool_dt, char_dt, integer_dt, double_dt, string_dt>;
+
+struct type_value {
+
+	datatypes value = bool_dt(false);
+	datatype_e rvalue_t = datatype_e::bool_t;
+	std::vector<char>* data = 0; //quick access
+
+	template<typename dT>
+	constexpr dT& get()
+	{
+		return std::get<dT>(value);
+	}
+
+	constexpr bool bool_convertible() const noexcept {
+		switch (rvalue_t) {
+		case datatype_e::bool_t:	return std::get<bool_dt>(value).bool_convertible();
+		case datatype_e::char_t:	return std::get<char_dt>(value).bool_convertible();
+		case datatype_e::int_t:		return std::get<integer_dt>(value).bool_convertible();
+		case datatype_e::double_t:	return std::get<double_dt>(value).bool_convertible();
+		case datatype_e::string_t:	return std::get<string_dt>(value).bool_convertible();
+		}
+		return 0;
+	}
+	constexpr bool is_integral() const noexcept {
+
+		switch (rvalue_t) {
+		case datatype_e::bool_t:	return std::get<bool_dt>(value).is_integral();
+		case datatype_e::char_t:	return std::get<char_dt>(value).is_integral();
+		case datatype_e::int_t:		return std::get<integer_dt>(value).is_integral();
+		case datatype_e::double_t:	return std::get<double_dt>(value).is_integral();
+		case datatype_e::string_t:	return std::get<string_dt>(value).is_integral();
+		}
+
+		return 0;
+	}
+	constexpr bool is_numeric() const noexcept {
+
+		switch (rvalue_t) {
+		case datatype_e::bool_t:	return std::get<bool_dt>(value).is_numeric();
+		case datatype_e::char_t:	return std::get<char_dt>(value).is_numeric();
+		case datatype_e::int_t:		return std::get<integer_dt>(value).is_numeric();
+		case datatype_e::double_t:	return std::get<double_dt>(value).is_numeric();
+		case datatype_e::string_t:	return std::get<string_dt>(value).is_numeric();
+		}
+
+		return 0;
+	}
+	constexpr std::string type_str() const noexcept(true)
+	{
+		switch (rvalue_t) {
+		case datatype_e::bool_t:	return std::get<bool_dt>(value).type_str();
+		case datatype_e::char_t:	return std::get<char_dt>(value).type_str();
+		case datatype_e::int_t:		return std::get<integer_dt>(value).type_str();
+		case datatype_e::double_t:	return std::get<double_dt>(value).type_str();
+		case datatype_e::string_t:	return std::get<string_dt>(value).type_str();
+		}
+
+		return "";
+	}
+	constexpr std::string value_str() const noexcept(true)
+	{
+		switch (rvalue_t) {
+		case datatype_e::bool_t:	return std::get<bool_dt>(value).value_str();
+		case datatype_e::char_t:	return std::get<char_dt>(value).value_str();
+		case datatype_e::int_t:		return std::get<integer_dt>(value).value_str();
+		case datatype_e::double_t:	return std::get<double_dt>(value).value_str();
+		case datatype_e::string_t:	return std::get<string_dt>(value).value_str();
+		}
+
+		return "";
+	}
+
+};
+
+struct script_literals
+{
+	std::unique_ptr<type_value> value;
+	size_t index = 0;
+};
+
 template<typename Base, typename CastType>
 inline constexpr Base datatype::create_type(const datatype& target)
 {
@@ -373,11 +451,11 @@ inline constexpr Base datatype::create_type_copy(const Base& target)
 
 	throw std::logic_error("yea");
 }
-template<typename Base, typename CastType>
-inline constexpr std::unique_ptr<Base> datatype::create_type_ptr(datatype& target)
-{
-	return std::make_unique<Base>(create_type<Base, CastType>(target));
-}
+//template<typename Base, typename CastType>
+//inline constexpr std::unique_ptr<Base> datatype::create_type_ptr(datatype& target)
+//{
+//	return std::make_unique<Base>(create_type<Base, CastType>(target));
+//}
 
 template<typename T>
 inline constexpr T& datatype::getvalue() noexcept {

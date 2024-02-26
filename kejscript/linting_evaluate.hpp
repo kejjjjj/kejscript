@@ -5,8 +5,9 @@
 #include "punctuation.hpp"
 #include "linting_exceptions.hpp"
 #include "linting_scope.hpp"
-
 #include "function_sanity.hpp"
+
+#include "datatype.hpp"
 
 struct linting_data
 {
@@ -15,8 +16,6 @@ struct linting_data
 	struct_def* active_struct = 0;
 	function_block* current_function = 0;
 	ListTokenPtr* tokens = 0;
-	std::unordered_map<std::string, function_def> existing_funcs;
-	std::unordered_map<std::string, std::unique_ptr<struct_def>> structs;
 
 	void validate(ListTokenPtr::iterator it, ListTokenPtr::iterator to);
 
@@ -34,7 +33,11 @@ struct linting_data
 			throw linting_error("the function '%s' already exists", func->def.identifier.c_str());
 
 		LOG("declaring the function '" << func->def.identifier << "' with " << func->def.parameters.size() << " parameters!\n");
-		return function_table.insert(function_table.end(), { func->def.identifier, std::move(func) })->second;
+		
+		func->def.index = function_table.size();
+		auto& v = function_table.insert(function_table.end(), { func->def.identifier, std::move(func) })->second;
+		sorted_functions.push_back(v.get());
+		return v;
 		
 	}
 	bool struct_exists(const std::string& s) const { return unevaluated_structs.find(s) != unevaluated_structs.end(); }
@@ -48,12 +51,16 @@ struct linting_data
 		
 		return structs.insert(structs.end(), { _struct->identifier, std::move(_struct) })->second;
 	}
+
 	std::unordered_map<std::string, std::unique_ptr<function_block>> function_table;
+	std::vector<function_block*> sorted_functions;
 	std::unordered_map<std::string, unevaluated_function> unevaluated_functions;
 	std::unordered_map<std::string, unevaluated_struct> unevaluated_structs;
+	std::unordered_map<std::string, std::unique_ptr<struct_def>> structs;
 
+	std::unordered_map<std::string, std::unique_ptr<script_literals>> literals;
+	std::vector<script_literals*> sorted_literals;
 };
-
 struct linting_expression
 {
 	token_t* identifier = 0;

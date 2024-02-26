@@ -37,10 +37,13 @@ size_t function_block::get_index_for_variable(const std::string_view& target)
 		}
 		++i;
 	}
-	assert("get_index_for_variable(): didn't find variable.. how?");
 	return 0;
+	//throw linting_error("get_index_for_variable(): didn't find '%s'", target.data());
 }
-
+size_t function_block::get_index_for_operand(const std::string& target)
+{
+	return def.operands.find(target)->second;
+}
 void ast_node::print_internal(int level, std::vector<std::vector<std::string>>& levels) const
 {
 	if (!this)

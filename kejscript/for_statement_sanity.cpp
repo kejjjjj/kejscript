@@ -20,7 +20,10 @@ static bool initialization_has_declaration(ListTokenPtr::iterator& it)
 	LOG("declaring: '" << it->get()->string << "'\n");
 
 	auto& funcdef = data.current_function->def;
+	funcdef.operands.insert({ it->get()->string, funcdef.operands.size() });
 	funcdef.variables.push_back(it->get()->string);
+
+
 
 	//check if the next token is valid
 	if (VECTOR_PEEK(it, 1, end) == false) {

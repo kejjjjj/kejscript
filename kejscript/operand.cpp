@@ -6,58 +6,31 @@
 
 operand::operand(singular& expr, function_stack* stack) : value(), _operand(expr.token)
 {
-	using rvalue = std::unique_ptr<datatype>;
 	auto& oper = expr.v;
 
 	if (oper.type == validation_expression::Type::OTHER) {
 
-		std::vector<std::shared_ptr<variable>>* ref;
+		std::vector<std::shared_ptr<variable>>* ref = 0;
+
+		auto& v = std::get<validation_expression::other>(oper.value);
 
 		if (expr.structure && stack->_this)
 			ref = &stack->_this->variables;
-		else
-			ref = &stack->variables;
-
-		auto& r = (*ref)[ std::get<validation_expression::other>(oper.value).variable_index ];
 		
-		if(expr.function_pointer)
+		auto& r = ref ? (*ref)[ v.variable_index ] : stack->variables[v.operand_index]->get_lvalue();
+		
+		if (expr.function_pointer) {
 			r->function_pointer = expr.function_pointer;
-		
-		value = r;
-		type = Type::LVALUE;
+			r->immutable = true;
+		}
 
+		make_lvalue(r);
 		return;
 	}
 	else {
 		type = Type::RVALUE;
-		auto& literal = std::get<validation_expression::literal>(oper.value);
-		using literalType = validation_expression::literal;
-		switch (literal.type) {
-		case literalType::NUMBER_LITERAL:
-			value = std::make_unique<integer_dt>(*reinterpret_cast<int32_t*>(literal.value.data()));
-			break;
-		case literalType::FLOAT_LITERAL:
-			value = std::make_unique<double_dt>(*reinterpret_cast<double*>(literal.value.data()));
-			break;
-		case literalType::STRING_LITERAL:
-			value = std::make_unique<string_dt>(literal.value);
+		rvalue = *runtime::sorted_literals[std::get<validation_expression::literal>(oper.value).literal_index]->value.get();
 
-			string = std::make_unique<string_object>();
-
-			for (auto& v : literal.value)
-				string->insert(v);
-
-			break;
-		case literalType::CHAR_LITERAL:
-			value = std::make_unique<char_dt>(literal.value[0]);
-			break;
-		case literalType::_TRUE:
-		case literalType::_FALSE:
-			value = std::make_unique<bool_dt>(literal.type == literalType::_TRUE ? true : false);
-			break;
-		default:
-			throw runtime_error(expr.token, "huh?");
-		}
 	}
 	
 
@@ -82,33 +55,34 @@ void operand::cast_weaker_operand(datatype_e this_type, datatype_e other_type, o
 	else
 		return;
 
-	auto& weaker_value = std::get<rvalue>(weaker->value);
-	auto& v = *weaker_value;
+	//auto& weaker_value = (weaker->rvalue);
+	//auto& v = weaker_value;
 
+	*weaker->get_value() = *stronger->get_value();
 
 	//bool_t is not needed here because it will never be stronger than anything
-	switch (stronger->get_value()->type()) {
-	case datatype_e::char_t:
-		weaker_value = datatype::create_type_ptr<char_dt, char>(v);
-		break;
-	case datatype_e::int_t:
-		weaker_value = datatype::create_type_ptr<integer_dt, int>(v);
-		break;
-	case datatype_e::double_t:
-		weaker_value = datatype::create_type_ptr<double_dt, double>(v);
-		break;
-	}
+	//switch (stronger->get_value()->type()) {
+	//case datatype_e::char_t:
+	//	*weaker_value = datatype::cast_normal<char_dt>(v);
+	//	break;
+	//case datatype_e::int_t:
+	//	*weaker_value = datatype::cast_normal<integer_dt>(v);
+	//	break;
+	//case datatype_e::double_t:
+	//	*weaker_value = datatype::cast_normal<double_dt>(v);
+	//	break;
+	//}
 
 }
-void operand::cast_weaker_operand(datatype* other)
+void operand::cast_weaker_operand(type_value* other)
 {
-	datatype* v = get_value();
+	type_value* v = get_value();
 
-	datatype_e this_type = v->type();
-	datatype_e other_type = other->type();
+	datatype_e this_type = v->rvalue_t;
+	datatype_e other_type = other->rvalue_t;
 
-	datatype* stronger = 0;
-	datatype* weaker = 0;
+	type_value* stronger = 0;
+	type_value* weaker = 0;
 
 	if (this_type > other_type) {
 		stronger = v;
@@ -121,75 +95,79 @@ void operand::cast_weaker_operand(datatype* other)
 	else
 		return;
 
-	switch (stronger->type()) {
-	case datatype_e::int_t:
-		*weaker = datatype::create_type_copy<integer_dt, int>(datatype::cast_normal<integer_dt>(weaker));
-		break;
-	case datatype_e::double_t:
-		*weaker = datatype::create_type_copy<double_dt, double>(datatype::cast_normal<double_dt>(weaker));
-		break;
-	}
+	weaker = stronger;
+
+	//switch (stronger->type()) {
+	//case datatype_e::int_t:
+	//	*weaker = datatype::cast_normal<integer_dt>(weaker);
+	//	break;
+	//case datatype_e::double_t:
+	//	*weaker = datatype::cast_normal<double_dt>(weaker);
+	//	break;
+	//}
 
 }
 void operand::implicit_cast(operand& other)
 {
-	datatype* l = get_value();
-	datatype* r = other.get_value();
+	auto l = get_value();
+	auto r = other.get_value();
 
-	if (l->type() == r->type())
+	if (l->rvalue_t == r->rvalue_t)
 		return;
 
-	cast_weaker_operand(l->type(), r->type(), other);
-
+	cast_weaker_operand(l->rvalue_t, r->rvalue_t, other);
 	return;
 
 }
-void operand::implicit_cast(datatype* other)
+void operand::implicit_cast(type_value* r)
 {
-	datatype* l = get_value();
-	datatype* r = other;
+	auto l = get_value();
 
-	if (l->type() == r->type())
+	if (l->rvalue_t == r->rvalue_t)
 		return;
 
-	cast_weaker_operand(other);
+	cast_weaker_operand(r);
 	return;
 
 }
-void operand::implicit_cast(operand& other, datatype* l, datatype* r)
+void operand::implicit_cast(operand& other, type_value* l, type_value* r)
 {
-	if (l->type() == r->type())
+	if (l->rvalue_t == r->rvalue_t)
 		return;
 
 	if(type == Type::RVALUE)
-		return cast_weaker_operand(l->type(), r->type(), other);
+		return cast_weaker_operand(l->rvalue_t, r->rvalue_t, other);
 
-
-
-	return;
 }
 bool operand::has_value()  const noexcept
 {
-	return is_object() || is_string() || get_value();
+	return is_object() || is_function_pointer() || is_string() || get_value();
 }
 bool operand::is_integral() const noexcept
 {
-	return !is_object() && !is_string() && get_value()->is_integral();
+	return !is_object() && !is_function_pointer() && !is_string() && get_value()->is_integral();
 }
 bool operand::is_numeric() const noexcept
 {
-	return !is_object() && !is_string() && get_value()->is_numeric();
+	return !is_object() && !is_function_pointer() && !is_string() && get_value()->is_numeric();
 }
 bool operand::bool_convertible() const noexcept
 {
-	return !is_object() && !is_string() && get_value()->bool_convertible();
+	return !is_object() && !is_function_pointer() && !is_string() && get_value()->bool_convertible();
 }
-[[maybe_unused]] datatype* operand::lvalue_to_rvalue()
+bool operand::valueless_type() const noexcept
+{
+	return this && (is_object() || is_function_pointer());
+}
+[[maybe_unused]] type_value& operand::lvalue_to_rvalue()
 {
 	if (type == Type::RVALUE)
-		return std::get<rvalue>(value).get();
+		return rvalue;
 
-	auto& lval = std::get<std::shared_ptr<variable>>(value);
+	auto& lval = value;
+	
+	if(valueless_type())
+		throw runtime_error(_operand, "cannot make the type '%s' into an rvalue", get_type().c_str());
 
 	if (lval->initialized == false)
 		throw runtime_error(_operand, "use of an uninitialized variable '%s'", lval->identifier.c_str());
@@ -203,54 +181,51 @@ bool operand::bool_convertible() const noexcept
 		for (auto& s : _string)
 			string->insert(s);
 
-		value = std::make_unique<string_dt>(str->get_string());
-		type = Type::RVALUE;
+		make_rvalue<string_dt>(string_dt(str->get_string()));
 
-		return std::get<rvalue>(value).get();
+		return rvalue;
 	}
 
-	auto dtype = (lval->value).get();
+	auto& dtype = (lval->get_value());
 
-
-	switch (dtype->type()) {
-	case datatype_e::bool_t:
-		value = datatype::cast<bool_dt>(dtype);
-		break;
-	case datatype_e::int_t:
-		value = datatype::cast<integer_dt>(dtype);
-		break;
-	case datatype_e::double_t:
-		value = datatype::cast<double_dt>(dtype);
-		break;
-	case datatype_e::string_t:
-		value = datatype::cast<string_dt>(dtype);
-		break;
-	case datatype_e::char_t:
-		value = datatype::cast<char_dt>(dtype);
-		break;
-	}
-
+	rvalue = dtype;
 	type = Type::RVALUE;
 
-	return std::get<rvalue>(value).get();
+	//make_rvalue(dtype);
+
+	//switch (lval->value_t) {
+	//case datatype_e::bool_t:
+	//	make_rvalue(datatype::cast_normal<bool_dt>(dtype));
+	//	break;
+	//case datatype_e::int_t:
+	//	make_rvalue(datatype::cast_normal<integer_dt>(dtype));
+	//	break;
+	//case datatype_e::double_t:
+	//	make_rvalue(datatype::cast_normal<double_dt>(dtype));
+	//	break;
+	//case datatype_e::string_t:
+	//	make_rvalue(datatype::cast_normal<string_dt>(dtype));
+	//	break;
+	//case datatype_e::char_t:
+	//	make_rvalue(datatype::cast_normal<char_dt>(dtype));
+	//	break;
+	//}
+
+	return rvalue;
 }
-datatype* operand::get_value()
+type_value* operand::get_value()
 {
 	if (type == Type::RVALUE)
-		return std::get<rvalue>(value).get();
+		return &rvalue;
 
-	auto& v = std::get<std::shared_ptr<variable>>(value);
-
-	return type == Type::RVALUE ? std::get<rvalue>(value).get() : (v->value).get();
+	return &value->get_value();
 }
-datatype* operand::get_value() const
+type_value* operand::get_value() const
 {
 	if (type == Type::RVALUE)
-		return std::get<rvalue>(value).get();
+		return const_cast<type_value*>(&rvalue);
 
-	auto& v = std::get<std::shared_ptr<variable>>(value);
-
-	return type == Type::RVALUE ? std::get<rvalue>(value).get() : (v->value).get();
+	return &value->get_value();
 }
 bool operand::is_compatible_with(const operand& other) const
 {

@@ -3,6 +3,7 @@
 #include "pch.hpp"
 
 
+
 enum class tokentype_t : uint8_t
 {
 	UNKNOWN,
@@ -142,6 +143,10 @@ struct function_def
 	std::vector<std::string> parameters;
 	std::string identifier;
 	std::vector<std::string> variables;	
+	std::unordered_map<std::string, size_t> operands;
+	size_t index = 0;
+
+	size_t num_operands() const noexcept { return operands.size(); }
 };
 
 enum class code_block_e : uint8_t
@@ -188,12 +193,13 @@ struct function_block
 		blocks.push_back(instructions.back().get());
 	}
 	size_t get_index_for_variable(const std::string_view& target);
+	size_t get_index_for_operand(const std::string& target);
 
 	struct struct_def* structure = 0;
 	std::list<std::unique_ptr<code_block>> instructions;
 	std::vector<code_block*> blocks; //keeps track of the current codeblock (points to the instructions list)
-	//struct function_stack* stack = 0;
-	struct operand* return_value = 0;
+	//std::unordered_map<std::string, size_t> operands;
+	//struct operand* return_value = 0;
 	size_t nest_depth = 0;
 	function_def def;
 	bool entrypoint = false;
@@ -357,25 +363,13 @@ struct validation_expression
 	}type = OTHER;
 	struct literal
 	{
-		enum literal_type
-		{
-			NUMBER_LITERAL,
-			FLOAT_LITERAL,
-			STRING_LITERAL,
-			CHAR_LITERAL,
-			_TRUE,
-			_FALSE,
-		};
-
-		literal_type type = NUMBER_LITERAL;
-		std::vector<char> value;
-
+		size_t literal_index = 0;
 	};
 	struct other
 	{
 		std::string identifier;
 		size_t variable_index = 0; //for quick access
-
+		size_t operand_index = 0;
 	};
 	validation_expression() = default;
 	validation_expression(const literal& l) : value(l), type(LITERAL) {};
@@ -407,6 +401,9 @@ struct singular {
 	struct_def* structure = 0;
 	function_block* function_pointer = 0;
 	//std::unique_ptr<function_call> callable;
+	
+	constexpr auto& get_other() { return std::get<validation_expression::other>(v.value); }
+	constexpr auto& get_literal() { return std::get<validation_expression::literal>(v.value); }
 
 	struct postfix
 	{

@@ -355,6 +355,7 @@ void script_t::validate()
 void script_t::execute()
 {
 	runtime::initialize(linting_data::getInstance().function_table);
+	runtime::sorted_literals = linting_data::getInstance().sorted_literals;
 	runtime::execute();
 
 

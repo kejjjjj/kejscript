@@ -11,7 +11,7 @@ bool expression_block::execute(function_stack* stack)
 	evaluate_expression(owner, stack, expression_ast);
 	return false;
 }
-static void evaluate_unary(operand_ptr& target, const nodeptr& node)
+static void evaluate_unary(operand* target, const nodeptr& node)
 {
 	if (node->is_unary() == false)
 		return;
@@ -23,10 +23,10 @@ static void evaluate_unary(operand_ptr& target, const nodeptr& node)
 
 }
 
-static std::list<std::unique_ptr<operand>> parse_arguments(function_block* owner, function_stack* stack, operand_ptr& target, std::unique_ptr<expression_block>& arguments)
+static std::list<operand*> parse_arguments(function_block* owner, function_stack* stack, operand* target, std::unique_ptr<expression_block>& arguments)
 {
 	expression_block* arg = arguments.get();
-	std::list<std::unique_ptr<operand>> args;
+	std::list<operand*> args;
 	size_t argc = 1;
 	while (arg) {
 		auto expr = evaluate_expression(owner, stack, arg->expression_ast);
@@ -35,7 +35,7 @@ static std::list<std::unique_ptr<operand>> parse_arguments(function_block* owner
 			std::string s_argc = std::to_string(argc);
 			throw runtime_error(target->_operand, "attempted to pass a null value to function (argument %s)", s_argc.c_str());
 		}
-		args.push_back(std::move(expr));
+		args.push_back(expr);
 		arg = arg->next.get();
 		++argc;
 	}
@@ -44,7 +44,7 @@ static std::list<std::unique_ptr<operand>> parse_arguments(function_block* owner
 
 }
 
-static void evaluate_postfix(function_block* owner, function_stack* stack, operand_ptr& target, const nodeptr& node)
+static void evaluate_postfix(function_block* owner, function_stack* stack, operand* target, const nodeptr& node)
 {
 	if (node->is_postfix() == false)
 		return;
@@ -62,22 +62,26 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 		}
 
 		auto args = parse_arguments(owner, stack, target, function->arguments);
-		auto& v = target->get_lvalue();
+		//auto& v = target->get_lvalue();
 
-		if (v->member) {
-			target = call_method(target_func, std::move(args), v->member);
-		}
-		else {
-			target = call_function(owner, target_func, std::move(args), stack);
-		}
+		target = 0;
+
+		//if (v->member) {
+		//	target = call_method(target_func, args, v->member);
+		//}
+		//else {
+		//	target = call_function(owner, target_func, args, stack);
+		//}
 		if (!target) //function didn't return a value
 			return;
 
 	}
 	else if (op->block->type() == code_block_e::STRUCT_CALL) {
 
-		auto function = dynamic_cast<struct_call*>(op->block.get());
-		target = call_constructor(function, std::move(parse_arguments(owner, stack, target, function->arguments)), stack);
+		//auto function = dynamic_cast<struct_call*>(op->block.get());
+		
+		target = 0;
+		//target = call_constructor(function, std::move(parse_arguments(owner, stack, target, function->arguments)), stack);
 
 		if (!target) //function didn't return a value (should never happen?)
 			return;
@@ -109,16 +113,14 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 				throw runtime_error(node->get_token(), "'%s' is not a member of '%s'", wtf.c_str(), obj->structure->identifier.c_str());
 			}
 
-			auto v = std::make_shared<variable>();
+			auto& v = target->get_lvalue();
 
 			v->function_pointer = obj->structure->methods[var].get();
 			v->member = obj;
-
-			target = create_lvalue(v);
 		}
 		else {
 			obj->variables[var]->member = obj;
-			target = create_lvalue(obj->variables[var]);
+			target->get_lvalue() = obj->variables[var];
 		}
 
 
@@ -131,8 +133,12 @@ static void evaluate_postfix(function_block* owner, function_stack* stack, opera
 	//return evaluate_postfix(owner, stack, target, node->left);
 
 }
-static std::unique_ptr<operand> evaluate_initializer_list(function_block* owner, function_stack* stack, const initializer_list* list)
+static operand* evaluate_initializer_list(function_block* owner, function_stack* stack, const initializer_list* list)
 {
+
+	throw runtime_error(list->expression->expression_ast->get_token(), "null value in postfix expression");
+
+
 	auto rvalue_array = std::make_shared<variable>();
 	rvalue_array->initialized = true;
 	rvalue_array->identifier = "list";
@@ -147,9 +153,12 @@ static std::unique_ptr<operand> evaluate_initializer_list(function_block* owner,
 		current = current->next.get();
 	}
 
-	return create_lvalue(rvalue_array);
+
+
+	return nullptr;
+	//return create_lvalue(rvalue_array);
 }
-std::unique_ptr<operand> evaluate_expression(function_block* owner, function_stack* stack, const nodeptr& node)
+operand* evaluate_expression(function_block* owner, function_stack* stack, const nodeptr& node)
 {
 	if (node->is_list()) {
 		auto ret = evaluate_initializer_list(owner, stack, node->get_list().get());
@@ -165,7 +174,7 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 
 
 		evaluate_postfix(owner, stack, expression, node);
-		return std::move(expression);
+		return (expression);
 	}
 
 	if (node->is_unary()) {
@@ -173,13 +182,23 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 		if (!expression)
 			throw runtime_error(node->left->get_token(), "null value in unary expression");
 		evaluate_unary(expression, node);
-		return std::move(expression);
+		return (expression);
 	}
 
 	if (node->is_leaf()) {
 
-		auto& leaf = node->get_operand();	
-		return std::make_unique<operand>(*leaf.get(), stack);
+		auto& leaf = node->get_operand();
+
+		if (leaf->v.type == validation_expression::Type::LITERAL) {
+
+			auto& ptr = runtime::literals[leaf->get_literal().literal_index];
+
+			//std::cout << "returning: " << leaf->get_literal().literal_index << '\n';
+
+			return ptr.get();
+		}
+
+		return stack->variables[leaf->get_other().operand_index].get();
 	}
 
 	auto left_operand = evaluate_expression(owner, stack, node->left);
@@ -195,19 +214,12 @@ std::unique_ptr<operand> evaluate_expression(function_block* owner, function_sta
 		op->punc != P_ASSIGN &&
 		op->punc != P_EQUALITY &&
 		op->punc != P_UNEQUALITY
-		&& left_operand->is_compatible_with(*right_operand.get()) == false) {
+		&& left_operand->is_compatible_with(*right_operand) == false) {
 		throw runtime_error(left_operand->_operand, "an operand of type '%s' is not compatible with an operand of type '%s'",
 			left_operand->get_type().c_str(), right_operand->get_type().c_str());
 	}
 
-	auto ret = reinterpret_cast<evaluation_functions::funcptr>(op->eval)(*left_operand, *right_operand);
-
+	auto ret = reinterpret_cast<evaluation_functions::funcptr>(op->eval)(left_operand, right_operand);
 	ret->_operand = node->get_token();
-
-	//if(right_operand->_operand)
-	//	ret->_operand = right_operand->_operand;
-	//else if (left_operand->_operand)
-	//	ret->_operand = left_operand->_operand;
-
 	return ret;
 }

@@ -2,7 +2,7 @@
 
 std::unique_ptr<operand> call_constructor(
 	struct_call* callee,
-	const std::list<std::unique_ptr<operand>>& args,
+	const std::list<operand*>& args,
 	[[maybe_unused]] struct function_stack* stack)
 {
 
@@ -15,17 +15,28 @@ std::unique_ptr<operand> call_constructor(
 	auto function = callee->target;
 
 	if (function) {
-		//create arguments
-		for (const auto& param : function->def.parameters) {
-			stack_ptr->variables.push_back(std::make_shared<variable>(param));
-			evaluation_functions::assign_to_lvalue(stack_ptr->variables.back(), *arg);
-			++arg;
+
+		//create the stack
+		size_t num_vars = function->def.num_operands();
+
+		for (size_t i = 0; i < num_vars; ++i) {
+			stack_ptr->variables.push_back(std::make_shared<operand>());
+			stack_ptr->variables[i]->value->set_value(bool_dt(false));
 		}
 
-		//create local variables
-		for (auto& v : function->def.variables) {
-			stack_ptr->variables.push_back(std::make_shared<variable>(v));
+
+		//create arguments
+		size_t i = 0;
+		for ([[maybe_unused]] const auto& _ : function->def.parameters) {
+			evaluation_functions::assign_to_lvalue(stack_ptr->variables[i]->get_lvalue(), *arg);
+			++arg;
+			++i;
 		}
+
+		////create local variables
+		//for (auto& v : function->def.variables) {
+		//	stack_ptr->variables[i].get_lvalue()->identifier = v;
+		//}
 	}
 
 	stack_ptr->_this = std::make_shared<object>();
@@ -61,7 +72,7 @@ std::unique_ptr<operand> call_constructor(
 	v->obj = std::move(stack_ptr->_this);
 	v->obj->structure = callee->target_struct;
 
-	return create_lvalue(v);
+	return 0;
 
 
 
@@ -69,7 +80,7 @@ std::unique_ptr<operand> call_constructor(
 
 std::unique_ptr<operand> call_method(
 	function_block* callee,
-	const std::list<std::unique_ptr<operand>>& args,
+	std::list<operand*>& args,
 	std::shared_ptr<object>& _this)
 {
 
@@ -81,32 +92,43 @@ std::unique_ptr<operand> call_method(
 	auto arg = args.begin();
 	auto function = callee;
 
+	//create the stack
+	size_t num_vars = function->def.num_operands();
 
-	for (const auto& param : function->def.parameters) {
-		stack_ptr->variables.push_back(std::make_shared<variable>(param));
-		evaluation_functions::assign_to_lvalue(stack_ptr->variables.back(), *arg);
+	for (size_t i = 0; i < num_vars; ++i) {
+		stack_ptr->variables.push_back(std::make_shared<operand>());
+		stack_ptr->variables[i]->value->set_value(bool_dt(false));
+	}
+
+
+	size_t i = 0;
+	for ([[maybe_unused]] const auto& _ : function->def.parameters) {
+		evaluation_functions::assign_to_lvalue(stack_ptr->variables[i]->get_lvalue(), *arg);
+		stack_ptr->variables[i]->value->set_value(bool_dt(false));
+
 		++arg;
+		++i;
 	}
 
-	//create local variables
-	for (auto& v : function->def.variables) {
-		stack_ptr->variables.push_back(std::make_shared<variable>(v));
-	}
+	////create local variables
+	//for (auto& v : function->def.variables) {
+	//	stack_ptr->variables[i].get_lvalue()->identifier = v;
+	//}
 	
 	stack_ptr->_this = _this;
 
 	for (auto& instruction : function->instructions) {
 
 		if (instruction->execute(stack_ptr)) {
+			break;
 
-			auto returned_value = std::unique_ptr<operand>(function->return_value); //claim ownership!
+			//auto& returned_value = stack_ptr->return_value; //claim ownership!
 
-			if (!returned_value->is_object())
-				returned_value->lvalue_to_rvalue();
+			//if (returned_value && !returned_value->valueless_type())
+			//	returned_value->lvalue_to_rvalue();
 
-			function->return_value = 0;
-
-			return returned_value;
+			//return nullptr;
+			//return returned_value;
 
 		}
 

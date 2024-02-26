@@ -13,7 +13,7 @@ struct variable
 	~variable() = default;
 
 	std::string identifier;
-	std::unique_ptr<datatype> value;
+	
 	bool initialized = false;
 
 	std::shared_ptr<object> obj;
@@ -24,10 +24,24 @@ struct variable
 
 	bool immutable = false;
 
+	template<typename T>
+	void set_value(const T& v)
+	{
+		value.value = v;
+		value.rvalue_t = v.type();
+		value.data = &value.get<T>().value;
+	}
+
+	type_value& get_value() noexcept { return value; }
+
+	bool valueless_type() const noexcept;
 	void print(size_t spaces = 0);
 	void print2() const;
 
 private:
+
+	type_value value; //prevent writing without the setter
+
 	void print_internal(bool is_member = false) const;
 
 	NO_COPY_CONSTRUCTOR(variable);

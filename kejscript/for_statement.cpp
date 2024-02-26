@@ -16,7 +16,7 @@ bool for_block::execute(function_stack* stack)
 			if (value->bool_convertible() == false)
 				throw runtime_error(value->_operand, "the expression must be convertible to a boolean type");
 
-			bool expression_condition = *reinterpret_cast<bool*>(value->get_value()->value.data());
+			bool expression_condition = *reinterpret_cast<bool*>(value->get_value()->data->data());
 
 			if (expression_condition == false)
 				break;

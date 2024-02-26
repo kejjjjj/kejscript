@@ -93,6 +93,7 @@ void evaluate_function_declaration_sanity(ListTokenPtr::iterator& it, ListTokenP
 
 	auto func = parse_function_declaration(it, end);
 
+
 	//create the scope for the function
 	
 	//data.active_scope = linting_create_scope_for_function(data.active_scope, &func->def, true);
@@ -124,7 +125,8 @@ void parse_parameters(ListTokenPtr::iterator& it, ListTokenPtr::iterator& end, f
 
 	std::advance(it, 1);
 	def.parameters.push_back(it->get()->string);
-	
+	def.operands.insert({ it->get()->string, def.operands.size() });
+
 	for (auto& var : def.variables) {
 
 		if(var == it->get()->string)
